@@ -7,6 +7,7 @@ import { addBodyMetric } from '../lib/bodyMetrics'
 import { DEFAULT_CONFIG, saveEquipmentConfig } from '../lib/equipmentConfig'
 import { generateRoutine } from '../lib/routineGenerator'
 import { saveGeneratedRoutine } from '../lib/routines'
+import { TRAINING_STYLE_LIST } from '../data/trainingStyles'
 
 const GOAL_OPTIONS = Object.entries(GOAL_LABEL) // [['perder_grasa','Bajar de peso'], ...]
 
@@ -22,6 +23,7 @@ export default function Onboarding() {
   const [goal, setGoal] = useState('mantenerse')
   const [targetWeight, setTargetWeight] = useState('')
   const [location, setLocation] = useState('casa')
+  const [trainingStyle, setTrainingStyle] = useState('ppl')
   const [daysPerWeek, setDaysPerWeek] = useState(3)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -44,14 +46,14 @@ export default function Onboarding() {
       if (weight) await addBodyMetric(user.id, parseFloat(weight))
 
       if (location === 'gimnasio') {
-        const config = { ...GYM_EQUIPMENT_DEFAULTS, days_per_week: daysPerWeek }
+        const config = { ...GYM_EQUIPMENT_DEFAULTS, days_per_week: daysPerWeek, training_style: trainingStyle }
         await saveEquipmentConfig(user.id, config)
-        const generated = generateRoutine(config, daysPerWeek)
+        const generated = generateRoutine(config, daysPerWeek, trainingStyle)
         await saveGeneratedRoutine(user.id, generated)
         await refresh()
         navigate('/inicio')
       } else {
-        await saveEquipmentConfig(user.id, { ...DEFAULT_CONFIG, days_per_week: daysPerWeek })
+        await saveEquipmentConfig(user.id, { ...DEFAULT_CONFIG, days_per_week: daysPerWeek, training_style: trainingStyle })
         await refresh()
         navigate('/configuracion')
       }
@@ -162,6 +164,21 @@ export default function Onboarding() {
               Después de esto vas a poder cargar qué tenés exactamente en Configuración.
             </p>
           )}
+
+          <div className="field-label">Tipo de rutina</div>
+          <div className="style-list">
+            {TRAINING_STYLE_LIST.map((style) => (
+              <button
+                type="button"
+                key={style.id}
+                className={`style-option ${trainingStyle === style.id ? 'selected' : ''}`}
+                onClick={() => setTrainingStyle(style.id)}
+              >
+                <div className="name">{style.label}</div>
+                <div className="desc">{style.description}</div>
+              </button>
+            ))}
+          </div>
 
           <div className="field-label">Días por semana</div>
           <div className="stepper">

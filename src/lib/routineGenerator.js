@@ -1,6 +1,5 @@
-import { EXERCISES, SPLIT_LABEL } from '../data/exercises'
-
-const SPLIT_ORDER = ['push', 'pull', 'legs']
+import { EXERCISES } from '../data/exercises'
+import { TRAINING_STYLES } from '../data/trainingStyles'
 
 // Traduce la config de equipamiento del usuario a un set de tags disponibles.
 export function availableEquipmentTags(config) {
@@ -19,11 +18,18 @@ function isUsable(exercise, availableTags) {
   return exercise.equipment.every((tag) => availableTags.has(tag))
 }
 
-// Ejercicios de un split que el usuario puede hacer con su equipamiento actual.
-// Se usa tanto para generar la rutina como para ofrecer opciones al editarla.
-export function usableExercisesForSplit(config, split) {
+// Ejercicios de un grupo muscular que el usuario puede hacer con su
+// equipamiento actual. Se usa para generar la rutina y para ofrecer
+// opciones al editarla (swap / agregar ejercicio).
+export function usableExercisesForMuscle(config, muscle) {
   const availableTags = availableEquipmentTags(config)
-  return EXERCISES.filter((e) => e.split === split && isUsable(e, availableTags))
+  return EXERCISES.filter((e) => e.muscle === muscle && isUsable(e, availableTags))
+}
+
+export function usableExercisesForMuscles(config, muscles) {
+  const availableTags = availableEquipmentTags(config)
+  const set = new Set(muscles)
+  return EXERCISES.filter((e) => set.has(e.muscle) && isUsable(e, availableTags))
 }
 
 function defaultSetsReps(position) {
@@ -31,42 +37,73 @@ function defaultSetsReps(position) {
   return { sets: 3, reps_min: 10, reps_max: 15 }
 }
 
-// Genera una rutina Push/Pull/Legs de `daysPerWeek` días usando solo
-// ejercicios compatibles con el equipamiento disponible. Cuando un split se
-// repite en la semana (Push A, Push B...) rota la selección para no repetir
-// siempre los mismos ejercicios.
-export function generateRoutine(config, daysPerWeek) {
-  const availableTags = availableEquipmentTags(config)
-  const bySplit = {
-    push: EXERCISES.filter((e) => e.split === 'push' && isUsable(e, availableTags)),
-    pull: EXERCISES.filter((e) => e.split === 'pull' && isUsable(e, availableTags)),
-    legs: EXERCISES.filter((e) => e.split === 'legs' && isUsable(e, availableTags)),
+// Reparte `count` ejercicios entre los grupos musculares de un día, rotando
+// en ronda (round-robin) para no cargar todo a un solo músculo: un día de
+// "Pecho y hombro" con 5 ejercicios sale ~3 pecho + 2 hombro, no 5 pechos.
+// `pointers` se muta entre llamadas para que un día que se repite en la
+// semana (ej. "Push B") no elija siempre los mismos ejercicios.
+function pickRoundRobin(muscles, count, availableTags, pointers) {
+  const pools = {}
+  for (const m of muscles) {
+    pools[m] = EXERCISES.filter((e) => e.muscle === m && isUsable(e, availableTags))
   }
 
-  const pointers = { push: 0, pull: 0, legs: 0 }
-  const occurrences = { push: 0, pull: 0, legs: 0 }
+  const picked = []
+  const pickedIds = new Set()
+  let guard = 0
+  while (picked.length < count && guard < count * muscles.length + muscles.length) {
+    guard++
+    let addedAny = false
+    for (const m of muscles) {
+      if (picked.length >= count) break
+      const pool = pools[m]
+      if (pool.length === 0) continue
+      const idx = (pointers[m] ?? 0) % pool.length
+      pointers[m] = idx + 1
+      const candidate = pool[idx]
+      if (!pickedIds.has(candidate.id)) {
+        picked.push(candidate)
+        pickedIds.add(candidate.id)
+        addedAny = true
+      }
+    }
+    if (!addedAny) break
+  }
+  return picked
+}
+
+// Genera una rutina de `daysPerWeek` días según el estilo elegido (Push/Pull/
+// Legs, Torso/Pierna, Full Body o por grupo muscular), usando solo
+// ejercicios compatibles con el equipamiento disponible.
+export function generateRoutine(config, daysPerWeek, styleId = 'ppl') {
+  const style = TRAINING_STYLES[styleId] ?? TRAINING_STYLES.ppl
+  const availableTags = availableEquipmentTags(config)
   const exercisesPerDay = 5
+
+  const pointers = {} // { [muscle]: cursor } compartido entre días para variedad
+  const occurrences = {} // { [type]: cantidad de veces que apareció hasta ahora }
+
+  // Cuántas veces aparece cada tipo de día en total en la semana, para
+  // saber si hace falta desambiguar con "A"/"B" (solo si ese tipo se repite).
+  const totalByType = {}
+  for (let i = 0; i < daysPerWeek; i++) {
+    const t = style.days[i % style.days.length].type
+    totalByType[t] = (totalByType[t] ?? 0) + 1
+  }
 
   const days = []
   for (let i = 0; i < daysPerWeek; i++) {
-    const split = SPLIT_ORDER[i % 3]
-    const pool = bySplit[split]
-    occurrences[split] += 1
-    const letter = String.fromCharCode(64 + occurrences[split]) // A, B, C...
+    const blueprint = style.days[i % style.days.length]
+    occurrences[blueprint.type] = (occurrences[blueprint.type] ?? 0) + 1
+    const letter = String.fromCharCode(64 + occurrences[blueprint.type]) // A, B, C...
+    const needsLetter = totalByType[blueprint.type] > 1
 
-    let picked = []
-    if (pool.length > 0) {
-      const start = pointers[split] % pool.length
-      for (let n = 0; n < Math.min(exercisesPerDay, pool.length); n++) {
-        picked.push(pool[(start + n) % pool.length])
-      }
-      pointers[split] = start + exercisesPerDay
-    }
+    const picked = pickRoundRobin(blueprint.muscles, exercisesPerDay, availableTags, pointers)
 
     days.push({
       dayOrder: i,
-      label: `${SPLIT_LABEL[split]} ${letter}`,
-      splitType: split,
+      label: needsLetter ? `${blueprint.label} ${letter}` : blueprint.label,
+      splitType: blueprint.muscles.join(','),
       exercises: picked.map((ex, position) => ({
         exerciseId: ex.id,
         position,
@@ -76,7 +113,7 @@ export function generateRoutine(config, daysPerWeek) {
   }
 
   return {
-    name: 'Push Pull Legs',
+    name: style.label,
     daysPerWeek,
     days,
   }

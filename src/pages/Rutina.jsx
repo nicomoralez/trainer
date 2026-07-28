@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { fetchEquipmentConfig } from '../lib/equipmentConfig'
-import { usableExercisesForSplit } from '../lib/routineGenerator'
+import { usableExercisesForMuscles } from '../lib/routineGenerator'
 import {
   addRoutineExercise,
   fetchActiveRoutine,
@@ -10,8 +10,13 @@ import {
   swapExercisePositions,
   swapRoutineExercise,
 } from '../lib/routines'
-import { SPLIT_LABEL } from '../data/exercises'
 import { IconRemove } from '../components/Icons'
+
+const TONE_CLASSES = ['a', 'b', 'c']
+
+function dayMuscles(day) {
+  return day.split_type.split(',')
+}
 
 export default function Rutina() {
   const { user } = useAuth()
@@ -63,7 +68,7 @@ export default function Rutina() {
 
   async function handleAdd(day) {
     const used = new Set(day.exercises.map((e) => e.exercise_id))
-    const pool = usableExercisesForSplit(config, day.split_type)
+    const pool = usableExercisesForMuscles(config, dayMuscles(day))
     const next = pool.find((e) => !used.has(e.id))
     if (!next) return
     const position = day.exercises.length > 0 ? Math.max(...day.exercises.map((e) => e.position)) + 1 : 0
@@ -105,7 +110,7 @@ export default function Rutina() {
       <div>
         <div className="screen-eyebrow">Tu semana</div>
         <h1>Todavía no tenés rutina</h1>
-        <p className="sub">Configurá tu equipo y generamos tu Push / Pull / Legs.</p>
+        <p className="sub">Configurá tu equipo y tu estilo de rutina, y te la armamos.</p>
         <Link to="/configuracion" className="btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
           Ir a configuración
         </Link>
@@ -126,9 +131,9 @@ export default function Rutina() {
       {error && <div className="error-text">{error}</div>}
 
       <div className="day-grid">
-        {days.map((day) => (
+        {days.map((day, i) => (
           <button key={day.id} type="button" className="day-tile" onClick={() => setExpandedDayId(day.id)}>
-            <span className={`tone-dot ${day.split_type}`} />
+            <span className={`tone-dot ${TONE_CLASSES[i % 3]}`} />
             <div className="name">{day.label}</div>
             <div className="count">{day.exercises.length} ejercicios</div>
           </button>
@@ -139,7 +144,7 @@ export default function Rutina() {
         .filter((d) => d.id === expandedDayId)
         .map((day) => {
           const used = new Set(day.exercises.map((e) => e.exercise_id))
-          const pool = usableExercisesForSplit(config, day.split_type)
+          const pool = usableExercisesForMuscles(config, dayMuscles(day))
           const canAdd = pool.some((e) => !used.has(e.id))
           const sorted = [...day.exercises].sort((a, b) => a.position - b.position)
 
@@ -148,7 +153,7 @@ export default function Rutina() {
               <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-head">
                   <div className="panel-title" style={{ marginBottom: 0 }}>
-                    {day.label} · {SPLIT_LABEL[day.split_type]}
+                    {day.label}
                   </div>
                   <button type="button" className="modal-close" onClick={() => setExpandedDayId(null)} aria-label="Cerrar">
                     ×

@@ -6,6 +6,7 @@ import { SUPPLEMENT_OPTIONS } from '../lib/supplements'
 import { fetchEquipmentConfig, saveEquipmentConfig } from '../lib/equipmentConfig'
 import { generateRoutine } from '../lib/routineGenerator'
 import { saveGeneratedRoutine } from '../lib/routines'
+import { TRAINING_STYLE_LIST } from '../data/trainingStyles'
 
 const GOAL_OPTIONS = Object.entries(GOAL_LABEL)
 
@@ -260,7 +261,7 @@ function EquipmentSection({ user }) {
     setError('')
     try {
       await saveEquipmentConfig(user.id, config)
-      const generated = generateRoutine(config, config.days_per_week)
+      const generated = generateRoutine(config, config.days_per_week, config.training_style)
       await saveGeneratedRoutine(user.id, generated)
       setSaved(true)
     } catch (err) {
@@ -397,6 +398,21 @@ function EquipmentSection({ user }) {
           <span className="dot" />
           Peso corporal
         </button>
+      </div>
+
+      <div className="field-label">Tipo de rutina</div>
+      <div className="style-list">
+        {TRAINING_STYLE_LIST.map((style) => (
+          <button
+            type="button"
+            key={style.id}
+            className={`style-option ${config.training_style === style.id ? 'selected' : ''}`}
+            onClick={() => patch({ training_style: style.id })}
+          >
+            <div className="name">{style.label}</div>
+            <div className="desc">{style.description}</div>
+          </button>
+        ))}
       </div>
 
       <div className="field-label">Días por semana</div>

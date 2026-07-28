@@ -13,6 +13,7 @@ export const DEFAULT_CONFIG = {
   bands: false,
   cable: false,
   days_per_week: 3,
+  training_style: 'ppl',
 }
 
 export async function fetchEquipmentConfig(userId) {
