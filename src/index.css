@@ -1,17 +1,19 @@
 :root {
-  --bg: #15130f;
-  --bg-soft: #1c1912;
-  --bg-elev: #211d15;
-  --line: #362f21;
-  --text: #ede7d8;
-  --text-dim: #a89a7c;
-  --text-faint: #6f6450;
-  --accent: #e8622c;
-  --accent-soft: #e8622c26;
-  --accent-2: #7c9a6e;
-  --accent-2-soft: #7c9a6e26;
-  --danger: #d9584f;
-  --tone-legs: #6f8fae;
+  --bg: #07090c;
+  --bg-soft: #0d1116;
+  --bg-elev: #151a21;
+  --line: #263140;
+  --text: #f5f8fb;
+  --text-dim: #a9b6c4;
+  --text-faint: #5b6b7d;
+  --accent: #ff2d55;
+  --accent-soft: #ff2d5528;
+  --accent-2: #00e5ff;
+  --accent-2-soft: #00e5ff22;
+  --on-accent: #ffffff;
+  --on-accent-2: #06222b;
+  --danger: #ff4d4d;
+  --tone-legs: #7c5cff;
 
   --font-display: "Archivo Black", "Arial Black", "Helvetica Neue", sans-serif;
   --font-body: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -32,7 +34,8 @@ body {
 
 body {
   background:
-    radial-gradient(ellipse 900px 500px at 50% -10%, #2a2013 0%, transparent 60%),
+    radial-gradient(ellipse 900px 500px at 50% -10%, #ff2d5522 0%, transparent 60%),
+    radial-gradient(ellipse 700px 420px at 100% 0%, #00e5ff14 0%, transparent 55%),
     var(--bg);
   color: var(--text);
   font-family: var(--font-body);
@@ -111,13 +114,14 @@ h1 {
 .btn-primary {
   width: 100%;
   background: var(--accent);
-  color: #1a0f08;
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   padding: 14px;
   font-family: var(--font-body);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.95rem;
+  box-shadow: 0 8px 20px -8px var(--accent);
 }
 .btn-primary:disabled {
   opacity: 0.5;
@@ -241,6 +245,15 @@ h1 {
   background: var(--accent);
   border-color: var(--accent);
 }
+.chip.taken {
+  border-color: var(--accent-2);
+  background: var(--accent-2-soft);
+  color: var(--text);
+}
+.chip.taken .dot {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
 .chip.locked {
   opacity: 0.55;
   cursor: default;
@@ -286,7 +299,7 @@ h1 {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #ede7d8;
+  background: #ffffff;
 }
 .switch.on {
   background: var(--accent);
@@ -480,7 +493,7 @@ h1 {
 .step-pill.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #1a0f08;
+  color: var(--on-accent);
   font-weight: 700;
 }
 
@@ -762,7 +775,7 @@ h1 {
 .check svg {
   width: 11px;
   height: 11px;
-  stroke: #101a0c;
+  stroke: var(--on-accent-2);
 }
 
 .timer-block {
@@ -840,7 +853,7 @@ h1 {
   align-items: center;
   gap: 14px;
   background: var(--accent-soft);
-  border: 1px solid #e8622c40;
+  border: 1px solid var(--accent);
   border-radius: 16px;
   padding: 16px 18px;
   margin-bottom: 16px;
@@ -877,7 +890,7 @@ h1 {
   transform: translateX(-50%);
   z-index: 100;
   background: var(--accent-2);
-  color: #101a0c;
+  color: var(--on-accent-2);
   font-weight: 700;
   font-size: 0.86rem;
   padding: 12px 20px;
@@ -1117,7 +1130,7 @@ h1 {
   text-transform: uppercase;
   color: var(--accent);
   background: var(--accent-soft);
-  border: 1px solid #e8622c40;
+  border: 1px solid var(--accent);
   border-radius: 999px;
   padding: 5px 14px;
   margin-bottom: 16px;

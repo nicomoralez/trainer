@@ -201,7 +201,7 @@ export default function Inicio() {
           </div>
           <div className="chip-grid">
             {profile.tracked_supplements.map((s) => (
-              <button type="button" key={s} className={`chip ${takenToday.has(s) ? 'selected' : ''}`} onClick={() => toggleSupplement(s)}>
+              <button type="button" key={s} className={`chip ${takenToday.has(s) ? 'taken' : ''}`} onClick={() => toggleSupplement(s)}>
                 <span className="dot" />
                 {s}
               </button>
