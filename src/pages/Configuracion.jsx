@@ -8,7 +8,6 @@ import { generateRoutine } from '../lib/routineGenerator'
 import { saveGeneratedRoutine } from '../lib/routines'
 
 const GOAL_OPTIONS = Object.entries(GOAL_LABEL)
-const COMMON_PLATES = [1.25, 2.5, 5, 10, 15, 20, 25]
 
 function maxBarbellLoad(config) {
   return config.plates.reduce((sum, p) => sum + p.weight * p.qty, config.barbell_weight)
@@ -171,6 +170,42 @@ function PersonalSection({ user, profile, refreshProfile }) {
   )
 }
 
+function AddDiscRow({ onAdd }) {
+  const [adding, setAdding] = useState(false)
+  const [weight, setWeight] = useState('')
+  const [qty, setQty] = useState('2')
+
+  function confirm() {
+    const w = parseFloat(weight)
+    const q = parseInt(qty, 10)
+    if (!Number.isNaN(w) && w > 0 && !Number.isNaN(q) && q > 0) onAdd(w, q)
+    setWeight('')
+    setQty('2')
+    setAdding(false)
+  }
+
+  if (!adding) {
+    return (
+      <button type="button" className="add-disc" onClick={() => setAdding(true)}>
+        + Agregar disco
+      </button>
+    )
+  }
+
+  return (
+    <div className="disc-row">
+      <span className="disc-add-inputs">
+        <input type="number" inputMode="decimal" autoFocus placeholder="kg" value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <span>kg ×</span>
+        <input type="number" inputMode="numeric" placeholder="cant." value={qty} onChange={(e) => setQty(e.target.value)} />
+      </span>
+      <button type="button" className="add-disc" style={{ marginTop: 0 }} onClick={confirm}>
+        Agregar
+      </button>
+    </div>
+  )
+}
+
 function EquipmentSection({ user }) {
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -202,10 +237,13 @@ function EquipmentSection({ user }) {
     patch({ plates })
   }
 
-  function addDisc() {
-    const existingWeights = new Set(config.plates.map((p) => p.weight))
-    const next = COMMON_PLATES.find((w) => !existingWeights.has(w)) ?? COMMON_PLATES[0]
-    patch({ plates: [...config.plates, { weight: next, qty: 2 }] })
+  function addDisc(weight, qty) {
+    const idx = config.plates.findIndex((p) => p.weight === weight)
+    if (idx === -1) {
+      patch({ plates: [...config.plates, { weight, qty }] })
+    } else {
+      patch({ plates: config.plates.map((p, i) => (i === idx ? { ...p, qty: p.qty + qty } : p)) })
+    }
   }
 
   function removeDisc(index) {
@@ -285,9 +323,7 @@ function EquipmentSection({ user }) {
                 </span>
               </div>
             ))}
-            <button type="button" className="add-disc" onClick={addDisc}>
-              + Agregar disco
-            </button>
+            <AddDiscRow onAdd={addDisc} />
             <div className="load-badge">Carga máx.: {maxBarbellLoad(config)} kg</div>
           </div>
         )}

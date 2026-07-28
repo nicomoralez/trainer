@@ -13,6 +13,10 @@ export const EXERCISES = [
   { id: 'press-inclinado-mancuernas', name: 'Press inclinado con mancuernas', split: 'push', equipment: ['dumbbells', 'bench'] },
   { id: 'fondos-banco', name: 'Fondos en banco', split: 'push', equipment: ['bench'] },
   { id: 'flexiones', name: 'Flexiones de brazos', split: 'push', equipment: [] },
+  { id: 'flexiones-diamante', name: 'Flexiones diamante (tríceps)', split: 'push', equipment: [] },
+  { id: 'flexiones-pike', name: 'Flexiones pike (hombro)', split: 'push', equipment: [] },
+  { id: 'flexiones-declinadas', name: 'Flexiones declinadas (pies elevados)', split: 'push', equipment: [] },
+  { id: 'fondos-sillas', name: 'Fondos entre dos sillas', split: 'push', equipment: [] },
   { id: 'aperturas-mancuernas', name: 'Aperturas con mancuernas', split: 'push', equipment: ['dumbbells', 'bench'] },
   { id: 'elevaciones-laterales', name: 'Elevaciones laterales', split: 'push', equipment: ['dumbbells'] },
   { id: 'extension-triceps-mancuerna', name: 'Extensión de tríceps con mancuerna', split: 'push', equipment: ['dumbbells'] },
@@ -32,6 +36,8 @@ export const EXERCISES = [
   { id: 'curl-biceps-mancuernas', name: 'Curl de bíceps con mancuernas', split: 'pull', equipment: ['dumbbells'] },
   { id: 'remo-kettlebell', name: 'Remo con kettlebell', split: 'pull', equipment: ['kettlebell'] },
   { id: 'superman', name: 'Superman (extensión lumbar)', split: 'pull', equipment: [] },
+  { id: 'remo-invertido-mesa', name: 'Remo invertido en mesa resistente', split: 'pull', equipment: [] },
+  { id: 'retraccion-escapular', name: 'Retracción escapular en el piso', split: 'pull', equipment: [] },
 
   // ---------- LEGS: pierna completa ----------
   { id: 'sentadilla-barra', name: 'Sentadilla con barra', split: 'legs', equipment: ['barbell'] },
@@ -46,6 +52,11 @@ export const EXERCISES = [
   { id: 'sentadilla-peso-corporal', name: 'Sentadilla sin peso', split: 'legs', equipment: [] },
   { id: 'puente-gluteo', name: 'Puente de glúteo', split: 'legs', equipment: [] },
   { id: 'elevacion-talones-mancuernas', name: 'Elevación de talones con mancuernas', split: 'legs', equipment: ['dumbbells'] },
+  { id: 'sentadilla-bulgara-silla', name: 'Sentadilla búlgara sin peso (silla)', split: 'legs', equipment: [] },
+  { id: 'peso-muerto-pierna-sin-peso', name: 'Peso muerto a una pierna sin peso', split: 'legs', equipment: [] },
+  { id: 'elevacion-talones-sin-peso', name: 'Elevación de talones sin peso', split: 'legs', equipment: [] },
+  { id: 'sentadilla-pared', name: 'Sentadilla isométrica en pared', split: 'legs', equipment: [] },
+  { id: 'salto-sentadilla', name: 'Salto en sentadilla', split: 'legs', equipment: [] },
 ]
 
 export const EXERCISES_BY_ID = Object.fromEntries(EXERCISES.map((e) => [e.id, e]))
