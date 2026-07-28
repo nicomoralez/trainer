@@ -11,7 +11,7 @@ import {
   swapRoutineExercise,
 } from '../lib/routines'
 import { SPLIT_LABEL } from '../data/exercises'
-import { IconEdit, IconRemove } from '../components/Icons'
+import { IconRemove } from '../components/Icons'
 
 export default function Rutina() {
   const { user } = useAuth()
@@ -28,7 +28,6 @@ export default function Rutina() {
         if (!active) return
         setRoutineData(routine)
         setConfig(cfg)
-        setExpandedDayId(routine?.days?.[0]?.id ?? null)
       })
       .catch((err) => active && setError(err.message))
       .finally(() => active && setLoading(false))
@@ -126,20 +125,12 @@ export default function Rutina() {
 
       {error && <div className="error-text">{error}</div>}
 
-      <div className="day-list">
+      <div className="day-grid">
         {days.map((day) => (
-          <button
-            key={day.id}
-            type="button"
-            className={`day-card ${expandedDayId === day.id ? 'active' : ''}`}
-            onClick={() => setExpandedDayId(expandedDayId === day.id ? null : day.id)}
-          >
-            <span className={`tone ${day.split_type}`} />
-            <span className="meta">
-              <div className="name">{day.label}</div>
-              <div className="count">{day.exercises.length} ejercicios</div>
-            </span>
-            <IconEdit className="edit" />
+          <button key={day.id} type="button" className="day-tile" onClick={() => setExpandedDayId(day.id)}>
+            <span className={`tone-dot ${day.split_type}`} />
+            <div className="name">{day.label}</div>
+            <div className="count">{day.exercises.length} ejercicios</div>
           </button>
         ))}
       </div>
@@ -153,56 +144,58 @@ export default function Rutina() {
           const sorted = [...day.exercises].sort((a, b) => a.position - b.position)
 
           return (
-            <div className="exercise-panel" key={day.id}>
-              <div className="panel-title">
-                {day.label} · {SPLIT_LABEL[day.split_type]}
-              </div>
-              {sorted.map((ex, i) => {
-                const options = pool.filter((e) => e.id === ex.exercise_id || !used.has(e.id))
-                return (
-                  <div className="ex-row" key={ex.id}>
-                    <span className="arrows">
-                      <button
-                        type="button"
-                        onClick={() => handleMove(day, ex, -1)}
-                        disabled={i === 0}
-                        aria-label="Mover arriba"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMove(day, ex, 1)}
-                        disabled={i === sorted.length - 1}
-                        aria-label="Mover abajo"
-                      >
-                        ↓
-                      </button>
-                    </span>
-                    <span className="info">
-                      <select value={ex.exercise_id} onChange={(e) => handleSwap(day, ex, e.target.value)}>
-                        {options.map((o) => (
-                          <option key={o.id} value={o.id}>
-                            {o.name}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="s">
-                        {ex.sets} × {ex.reps_min}-{ex.reps_max}
-                      </div>
-                    </span>
-                    <button type="button" className="icon-btn" onClick={() => handleRemove(day, ex)} aria-label="Quitar ejercicio">
-                      <IconRemove className="remove" />
-                    </button>
+            <div className="modal-backdrop" key={day.id} onClick={() => setExpandedDayId(null)}>
+              <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-head">
+                  <div className="panel-title" style={{ marginBottom: 0 }}>
+                    {day.label} · {SPLIT_LABEL[day.split_type]}
                   </div>
-                )
-              })}
-              {sorted.length === 0 && <p className="empty-hint">No hay ejercicios compatibles con tu equipo para este día.</p>}
-              {canAdd && (
-                <button type="button" className="add-ex" onClick={() => handleAdd(day)}>
-                  + Agregar ejercicio
-                </button>
-              )}
+                  <button type="button" className="modal-close" onClick={() => setExpandedDayId(null)} aria-label="Cerrar">
+                    ×
+                  </button>
+                </div>
+                {sorted.map((ex, i) => {
+                  const options = pool.filter((e) => e.id === ex.exercise_id || !used.has(e.id))
+                  return (
+                    <div className="ex-row" key={ex.id}>
+                      <span className="arrows">
+                        <button type="button" onClick={() => handleMove(day, ex, -1)} disabled={i === 0} aria-label="Mover arriba">
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMove(day, ex, 1)}
+                          disabled={i === sorted.length - 1}
+                          aria-label="Mover abajo"
+                        >
+                          ↓
+                        </button>
+                      </span>
+                      <span className="info">
+                        <select value={ex.exercise_id} onChange={(e) => handleSwap(day, ex, e.target.value)}>
+                          {options.map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {o.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="s">
+                          {ex.sets} × {ex.reps_min}-{ex.reps_max}
+                        </div>
+                      </span>
+                      <button type="button" className="icon-btn" onClick={() => handleRemove(day, ex)} aria-label="Quitar ejercicio">
+                        <IconRemove className="remove" />
+                      </button>
+                    </div>
+                  )
+                })}
+                {sorted.length === 0 && <p className="empty-hint">No hay ejercicios compatibles con tu equipo para este día.</p>}
+                {canAdd && (
+                  <button type="button" className="add-ex" onClick={() => handleAdd(day)}>
+                    + Agregar ejercicio
+                  </button>
+                )}
+              </div>
             </div>
           )
         })}

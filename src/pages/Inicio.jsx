@@ -7,6 +7,7 @@ import { fetchLastSessionSummary, fetchTrainingDayCount } from '../lib/workoutLo
 import { fetchFirstAndLatestWeight } from '../lib/bodyMetrics'
 import { fetchTodayIntake, setSupplementTaken } from '../lib/supplements'
 import { GOAL_LABEL } from '../lib/profile'
+import MonthCalendar from '../components/MonthCalendar'
 
 function relativeDate(isoDate) {
   const diffDays = Math.round((Date.now() - new Date(`${isoDate}T00:00:00`).getTime()) / 86400000)
@@ -128,6 +129,9 @@ export default function Inicio() {
           </div>
         </div>
       </div>
+
+      <div className="field-label">Tu constancia</div>
+      <MonthCalendar userId={user.id} />
 
       <div className="field-label">Progreso hacia tu objetivo</div>
       {hasGoal ? (

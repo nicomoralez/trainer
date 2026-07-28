@@ -484,72 +484,94 @@ h1 {
   font-weight: 700;
 }
 
-/* ---------- routine day cards ---------- */
+/* ---------- routine day tiles ---------- */
 
-.day-list {
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.day-tile {
+  aspect-ratio: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.day-card {
-  display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 16px;
   border: 1px solid var(--line);
   background: var(--bg-elev);
-  border-radius: 12px;
-  padding: 12px 14px;
-  text-align: left;
-  width: 100%;
-}
-.day-card.active {
-  border-color: var(--accent);
-}
-.day-card .tone {
-  width: 6px;
-  align-self: stretch;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-.tone.push {
-  background: var(--accent);
-}
-.tone.pull {
-  background: var(--accent-2);
-}
-.tone.legs {
-  background: var(--tone-legs);
-}
-.day-card .meta {
-  flex: 1;
-}
-.day-card .meta .name {
-  font-weight: 600;
-  font-size: 0.88rem;
-}
-.day-card .meta .count {
-  color: var(--text-faint);
-  font-size: 0.74rem;
-  font-family: var(--font-mono);
-}
-.day-card svg.edit {
-  width: 15px;
-  height: 15px;
-  stroke: var(--text-faint);
-  flex-shrink: 0;
+  text-align: center;
+  padding: 12px;
 }
 
-.exercise-panel {
-  border: 1px solid var(--accent);
-  background: var(--accent-soft);
-  border-radius: 14px;
-  padding: 14px;
-  margin-top: 4px;
-  margin-bottom: 18px;
+.tone-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }
-.exercise-panel .panel-title {
+.tone-dot.push {
+  background: var(--accent);
+}
+.tone-dot.pull {
+  background: var(--accent-2);
+}
+.tone-dot.legs {
+  background: var(--tone-legs);
+}
+
+.day-tile .name {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.day-tile .count {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 3, 0.65);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 82vh;
+  overflow-y: auto;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 20px;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.panel-title {
   font-size: 0.78rem;
   color: var(--text-faint);
   font-family: var(--font-mono);
@@ -866,6 +888,86 @@ h1 {
   color: var(--text-faint);
   padding: 0 2px;
   margin-top: 2px;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.cal-nav button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 4px 10px;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-weekday {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  padding-bottom: 4px;
+}
+
+.cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 8px;
+  background: var(--bg-soft);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+.cal-cell.today {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  color: var(--text);
+}
+.cal-cell.empty {
+  visibility: hidden;
+}
+
+.cal-dots {
+  display: flex;
+  gap: 3px;
+}
+.cal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.cal-dot.trained {
+  background: var(--accent);
+}
+.cal-dot.supp {
+  background: var(--accent-2);
+}
+
+.cal-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+.cal-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .log-weight-form {

@@ -45,14 +45,6 @@ export function IconPlay(props) {
   )
 }
 
-export function IconEdit(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
-      <path d="M3 21l3.5-1 11-11-2.5-2.5-11 11L3 21z" />
-    </svg>
-  )
-}
-
 export function IconSwap(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
