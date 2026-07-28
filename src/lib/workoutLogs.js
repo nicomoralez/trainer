@@ -51,6 +51,70 @@ export async function fetchLastLoggedDayId(userId) {
   return data?.[0]?.routine_day_id ?? null
 }
 
+// Racha: cuántos días entrenados seguidos, tolerando como máximo 1 día de
+// descanso entre sesiones. Dos o más días sin entrenar la cortan.
+export async function fetchTrainingStreak(userId) {
+  const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()
+  const { data, error } = await supabase.from('workout_logs').select('performed_at').eq('user_id', userId).gte('performed_at', since)
+  if (error) throw error
+
+  const days = Array.from(new Set(data.map((r) => r.performed_at.slice(0, 10)))).sort().reverse()
+  if (days.length === 0) return 0
+
+  const msDay = 86400000
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  let streak = 0
+  let cursor = today
+  for (const d of days) {
+    const date = new Date(`${d}T00:00:00`)
+    const diff = Math.round((cursor - date) / msDay)
+    if (streak === 0) {
+      if (diff > 2) break
+      streak = 1
+      cursor = date
+    } else if (diff <= 2) {
+      streak++
+      cursor = date
+    } else {
+      break
+    }
+  }
+  return streak
+}
+
+// Entrenamientos (días distintos) de la semana calendario actual (lunes a domingo).
+export async function fetchWeekTrainingCount(userId) {
+  const now = new Date()
+  const dow = (now.getDay() + 6) % 7 // 0 = lunes
+  const monday = new Date(now)
+  monday.setHours(0, 0, 0, 0)
+  monday.setDate(now.getDate() - dow)
+
+  const { data, error } = await supabase
+    .from('workout_logs')
+    .select('performed_at')
+    .eq('user_id', userId)
+    .gte('performed_at', monday.toISOString())
+  if (error) throw error
+  return new Set(data.map((r) => r.performed_at.slice(0, 10))).size
+}
+
+// Mejor peso histórico registrado para un ejercicio (null si nunca lo hizo).
+export async function fetchMaxWeightForExercise(userId, exerciseId) {
+  const { data, error } = await supabase
+    .from('workout_logs')
+    .select('weight_kg')
+    .eq('user_id', userId)
+    .eq('exercise_id', exerciseId)
+    .not('weight_kg', 'is', null)
+    .order('weight_kg', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return data?.[0]?.weight_kg ?? null
+}
+
 // Cantidad de días distintos con al menos una serie registrada en los últimos `sinceDays`.
 export async function fetchTrainingDayCount(userId, sinceDays = 30) {
   const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString()

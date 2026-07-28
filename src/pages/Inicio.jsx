@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { useProfile } from '../lib/ProfileContext'
 import { getNextWorkoutDay } from '../lib/nextWorkoutDay'
-import { fetchLastSessionSummary, fetchTrainingDayCount } from '../lib/workoutLogs'
+import { fetchLastSessionSummary, fetchTrainingDayCount, fetchTrainingStreak, fetchWeekTrainingCount } from '../lib/workoutLogs'
 import { fetchFirstAndLatestWeight } from '../lib/bodyMetrics'
 import { fetchTodayIntake, setSupplementTaken } from '../lib/supplements'
 import { GOAL_LABEL } from '../lib/profile'
 import MonthCalendar from '../components/MonthCalendar'
+import { IconFlame } from '../components/Icons'
 
 function relativeDate(isoDate) {
   const diffDays = Math.round((Date.now() - new Date(`${isoDate}T00:00:00`).getTime()) / 86400000)
@@ -25,6 +26,8 @@ export default function Inicio() {
   const [nextDay, setNextDay] = useState(null)
   const [lastSession, setLastSession] = useState(null)
   const [trainingDays, setTrainingDays] = useState(0)
+  const [streak, setStreak] = useState(0)
+  const [weekCount, setWeekCount] = useState(0)
   const [weightRange, setWeightRange] = useState({ first: null, latest: null })
   const [takenToday, setTakenToday] = useState(new Set())
 
@@ -34,14 +37,18 @@ export default function Inicio() {
       getNextWorkoutDay(user.id),
       fetchLastSessionSummary(user.id),
       fetchTrainingDayCount(user.id, 30),
+      fetchTrainingStreak(user.id),
+      fetchWeekTrainingCount(user.id),
       fetchFirstAndLatestWeight(user.id),
       fetchTodayIntake(user.id),
     ])
-      .then(([next, last, days, weights, intake]) => {
+      .then(([next, last, days, streakCount, week, weights, intake]) => {
         if (!active) return
         setNextDay(next)
         setLastSession(last)
         setTrainingDays(days)
+        setStreak(streakCount)
+        setWeekCount(week)
         setWeightRange(weights)
         setTakenToday(intake)
       })
@@ -95,6 +102,16 @@ export default function Inicio() {
 
       {error && <div className="error-text">{error}</div>}
 
+      {streak > 0 && (
+        <div className="streak-card">
+          <IconFlame />
+          <div>
+            <div className="num">{streak}</div>
+            <div className="label">{streak === 1 ? 'día de racha' : 'días de racha'}</div>
+          </div>
+        </div>
+      )}
+
       {nextDay?.day ? (
         <div className="ex-current" style={{ marginBottom: 16 }}>
           <div className="target" style={{ marginBottom: 4 }}>
@@ -114,6 +131,23 @@ export default function Inicio() {
             Configurala acá
           </Link>
           .
+        </div>
+      )}
+
+      {nextDay?.routineData && (
+        <div className="week-bar-card">
+          <div className="row-between">
+            <div className="field-label">Esta semana</div>
+            <div className="field-label" style={{ color: 'var(--text-dim)' }}>
+              {weekCount} / {nextDay.routineData.routine.days_per_week}
+            </div>
+          </div>
+          <div className="progress-track">
+            <div
+              className="progress-fill"
+              style={{ width: `${Math.min(100, (weekCount / nextDay.routineData.routine.days_per_week) * 100)}%` }}
+            />
+          </div>
         </div>
       )}
 

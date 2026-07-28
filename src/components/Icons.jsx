@@ -1,3 +1,11 @@
+export function IconFlame(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" {...props}>
+      <path d="M12 21c-4 0-7-3-7-7 0-4 3-6 4-9 1 2 1 4 3 4 1 0 1-2 1-3 3 2 6 5 6 8 0 4-3 7-7 7Z" />
+    </svg>
+  )
+}
+
 export function IconRutina(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>

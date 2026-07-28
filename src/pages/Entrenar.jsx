@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { getNextWorkoutDay } from '../lib/nextWorkoutDay'
-import { fetchLastSession, logSet } from '../lib/workoutLogs'
+import { fetchLastSession, fetchMaxWeightForExercise, logSet } from '../lib/workoutLogs'
 import { EXERCISES_BY_ID } from '../data/exercises'
 import { IconCheck } from '../components/Icons'
+import { feedbackPR, feedbackSetDone, feedbackWorkoutDone } from '../lib/feedback'
 
 const DEFAULT_REST = 90
 
@@ -26,6 +27,8 @@ export default function Entrenar() {
   const [restRemaining, setRestRemaining] = useState(0)
   const [resting, setResting] = useState(false)
   const [showCues, setShowCues] = useState(false)
+  const [bestWeight, setBestWeight] = useState(null)
+  const [prToast, setPrToast] = useState('')
 
   useEffect(() => {
     let active = true
@@ -56,6 +59,9 @@ export default function Entrenar() {
         setSets((cur) => cur.map((s, i) => (last[i] ? { ...s, weight: s.weight || String(last[i].weight_kg ?? '') } : s)))
       })
       .catch(() => {})
+    fetchMaxWeightForExercise(user.id, currentExercise.exercise_id)
+      .then((max) => setBestWeight(max))
+      .catch(() => {})
   }, [currentExercise?.id, user.id])
 
   useEffect(() => {
@@ -75,15 +81,26 @@ export default function Entrenar() {
   async function completeSet(i) {
     const s = sets[i]
     if (s.done) return
+    const weightNum = s.weight ? parseFloat(s.weight) : null
     try {
       await logSet(user.id, {
         routineDayId: day.id,
         exerciseId: currentExercise.exercise_id,
         setNumber: i + 1,
-        weightKg: s.weight ? parseFloat(s.weight) : null,
+        weightKg: weightNum,
         reps: s.reps ? parseInt(s.reps, 10) : null,
       })
       setSets((cur) => cur.map((set, idx) => (idx === i ? { ...set, done: true } : set)))
+
+      if (weightNum && bestWeight != null && weightNum > bestWeight) {
+        setBestWeight(weightNum)
+        feedbackPR()
+        setPrToast(`¡Nuevo récord! ${exerciseMeta?.name ?? ''} · ${weightNum} kg`)
+        setTimeout(() => setPrToast(''), 2600)
+      } else {
+        feedbackSetDone()
+      }
+
       const isLastSetOfDay = i === sets.length - 1 && exerciseIndex === dayExercises.length - 1
       if (!isLastSetOfDay) {
         setRestRemaining(restDuration)
@@ -101,6 +118,7 @@ export default function Entrenar() {
 
   function nextExercise() {
     setResting(false)
+    if (exerciseIndex === dayExercises.length - 1) feedbackWorkoutDone()
     setExerciseIndex((i) => i + 1)
   }
 
@@ -149,6 +167,7 @@ export default function Entrenar() {
 
   return (
     <div>
+      {prToast && <div className="pr-toast">{prToast}</div>}
       <div className="screen-eyebrow">Entrenamiento</div>
       <h1>{day.label}</h1>
       <div className="progress-track">
