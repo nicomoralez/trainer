@@ -25,6 +25,7 @@ export default function Entrenar() {
   const [restDuration, setRestDuration] = useState(DEFAULT_REST)
   const [restRemaining, setRestRemaining] = useState(0)
   const [resting, setResting] = useState(false)
+  const [showCues, setShowCues] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -48,6 +49,7 @@ export default function Entrenar() {
   useEffect(() => {
     if (!currentExercise) return
     setSets(Array.from({ length: currentExercise.sets }, () => ({ weight: '', reps: '', done: false })))
+    setShowCues(false)
     fetchLastSession(user.id, currentExercise.exercise_id)
       .then((last) => {
         if (!last || last.length === 0) return
@@ -166,6 +168,20 @@ export default function Entrenar() {
         <div className="target">
           Objetivo · {currentExercise.sets} series × {currentExercise.reps_min}–{currentExercise.reps_max} reps
         </div>
+        {exerciseMeta?.cues && (
+          <>
+            <button type="button" className="btn-link" style={{ marginTop: 10 }} onClick={() => setShowCues((v) => !v)}>
+              {showCues ? 'Ocultar técnica' : '¿Cómo se hace?'}
+            </button>
+            {showCues && (
+              <ul className="cue-list">
+                {exerciseMeta.cues.map((cue, i) => (
+                  <li key={i}>{cue}</li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
       </div>
 
       <table className="set-table">

@@ -676,6 +676,17 @@ h1 {
   color: var(--text-dim);
 }
 
+.cue-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.cue-list li {
+  margin-bottom: 2px;
+}
+
 .set-table {
   width: 100%;
   border-collapse: collapse;
