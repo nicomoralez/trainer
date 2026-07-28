@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/AuthContext'
-import { addBodyMetric, fetchBodyMetrics } from '../lib/bodyMetrics'
+import { addBodyMetric, fetchBodyMetrics, fetchFirstAndLatestWeight } from '../lib/bodyMetrics'
 import { fetchPersonalRecords, fetchTrainingDayCount } from '../lib/workoutLogs'
 import { EXERCISES_BY_ID } from '../data/exercises'
 import { IconUp } from '../components/Icons'
@@ -32,19 +32,24 @@ export default function Progreso() {
   const [metrics, setMetrics] = useState([])
   const [records, setRecords] = useState([])
   const [trainingDays, setTrainingDays] = useState(0)
+  const [weightRange, setWeightRange] = useState({ first: null, latest: null })
   const [loading, setLoading] = useState(true)
   const [weightInput, setWeightInput] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
   function reload() {
-    return Promise.all([fetchBodyMetrics(user.id, 8), fetchPersonalRecords(user.id, 3), fetchTrainingDayCount(user.id, 30)]).then(
-      ([m, r, t]) => {
-        setMetrics(m)
-        setRecords(r)
-        setTrainingDays(t)
-      },
-    )
+    return Promise.all([
+      fetchBodyMetrics(user.id, 8),
+      fetchPersonalRecords(user.id, 3),
+      fetchTrainingDayCount(user.id, 30),
+      fetchFirstAndLatestWeight(user.id),
+    ]).then(([m, r, t, w]) => {
+      setMetrics(m)
+      setRecords(r)
+      setTrainingDays(t)
+      setWeightRange(w)
+    })
   }
 
   useEffect(() => {
@@ -75,9 +80,10 @@ export default function Progreso() {
 
   if (loading) return <div className="empty-hint">Cargando tu progreso…</div>
 
-  const current = metrics[metrics.length - 1]
-  const oldest = metrics[0]
-  const delta = current && oldest && metrics.length > 1 ? current.weight_kg - oldest.weight_kg : null
+  const { first: initialWeight, latest: currentWeight } = weightRange
+  const delta = initialWeight && currentWeight && initialWeight.recorded_at !== currentWeight.recorded_at
+    ? currentWeight.weight_kg - initialWeight.weight_kg
+    : null
   const { points, area, coords } = buildChartPoints(metrics)
   const last = coords?.[coords.length - 1]
 
@@ -90,11 +96,15 @@ export default function Progreso() {
 
       <div className="stat-row">
         <div className="stat-tile">
-          <div className="v">{current ? `${current.weight_kg} kg` : '—'}</div>
-          <div className="l">
-            Peso actual{delta !== null ? ` · ${delta > 0 ? '+' : ''}${delta.toFixed(1)} kg vs. primer registro` : ''}
-          </div>
+          <div className="v">{initialWeight ? `${initialWeight.weight_kg} kg` : '—'}</div>
+          <div className="l">Peso inicial{initialWeight ? ` · ${shortDate(initialWeight.recorded_at)}` : ''}</div>
         </div>
+        <div className="stat-tile">
+          <div className="v">{currentWeight ? `${currentWeight.weight_kg} kg` : '—'}</div>
+          <div className="l">Peso actual{delta !== null ? ` · ${delta > 0 ? '+' : ''}${delta.toFixed(1)} kg` : ''}</div>
+        </div>
+      </div>
+      <div className="stat-row">
         <div className="stat-tile">
           <div className="v">{trainingDays}</div>
           <div className="l">Días entrenados (últimos 30)</div>
