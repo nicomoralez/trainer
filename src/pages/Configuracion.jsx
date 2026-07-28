@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
+import { useProfile } from '../lib/ProfileContext'
+import { GOAL_LABEL, GYM_EQUIPMENT_DEFAULTS, saveProfile } from '../lib/profile'
+import { SUPPLEMENT_OPTIONS } from '../lib/supplements'
 import { fetchEquipmentConfig, saveEquipmentConfig } from '../lib/equipmentConfig'
 import { generateRoutine } from '../lib/routineGenerator'
 import { saveGeneratedRoutine } from '../lib/routines'
 
+const GOAL_OPTIONS = Object.entries(GOAL_LABEL)
 const COMMON_PLATES = [1.25, 2.5, 5, 10, 15, 20, 25]
 
 function maxBarbellLoad(config) {
@@ -54,13 +57,126 @@ function WeightChips({ label, weights, onAdd, onRemove }) {
   )
 }
 
-export default function Equipo() {
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
+function PersonalSection({ user, profile, refreshProfile }) {
+  const [name, setName] = useState(profile.name ?? '')
+  const [age, setAge] = useState(profile.age ?? '')
+  const [height, setHeight] = useState(profile.height_cm ?? '')
+  const [goal, setGoal] = useState(profile.goal ?? 'mantenerse')
+  const [targetWeight, setTargetWeight] = useState(profile.target_weight_kg ?? '')
+  const [location, setLocation] = useState(profile.training_location ?? 'casa')
+  const [supplements, setSupplements] = useState(profile.tracked_supplements ?? [])
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  function toggleSupplement(name) {
+    setSupplements((cur) => (cur.includes(name) ? cur.filter((s) => s !== name) : [...cur, name]))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    setError('')
+    try {
+      await saveProfile(user.id, {
+        name: name.trim() || null,
+        age: age ? parseInt(age, 10) : null,
+        height_cm: height ? parseFloat(height) : null,
+        goal,
+        target_weight_kg: targetWeight ? parseFloat(targetWeight) : null,
+        training_location: location,
+        tracked_supplements: supplements,
+      })
+      await refreshProfile()
+      setSaved(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div>
+      <div className="field-label">Nombre</div>
+      <input className="text-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="¿Cómo te llamamos?" />
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div className="field-label">Edad</div>
+          <input className="text-input" type="number" inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)} placeholder="años" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="field-label">Altura</div>
+          <input className="text-input" type="number" inputMode="decimal" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="cm" />
+        </div>
+      </div>
+
+      <div className="field-label">Peso objetivo</div>
+      <input
+        className="text-input"
+        type="number"
+        inputMode="decimal"
+        value={targetWeight}
+        onChange={(e) => setTargetWeight(e.target.value)}
+        placeholder="kg (opcional)"
+      />
+
+      <div className="field-label">Tu objetivo</div>
+      <div className="chip-grid">
+        {GOAL_OPTIONS.map(([value, label]) => (
+          <button type="button" key={value} className={`chip ${goal === value ? 'selected' : ''}`} onClick={() => setGoal(value)}>
+            <span className="dot" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="field-label">¿Dónde entrenás?</div>
+      <div className="chip-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <button type="button" className={`chip ${location === 'casa' ? 'selected' : ''}`} onClick={() => setLocation('casa')}>
+          <span className="dot" />
+          Casa
+        </button>
+        <button type="button" className={`chip ${location === 'gimnasio' ? 'selected' : ''}`} onClick={() => setLocation('gimnasio')}>
+          <span className="dot" />
+          Gimnasio
+        </button>
+      </div>
+
+      <div className="field-label">Suplementos que tomás</div>
+      <div className="chip-grid">
+        {SUPPLEMENT_OPTIONS.map((s) => (
+          <button type="button" key={s} className={`chip ${supplements.includes(s) ? 'selected' : ''}`} onClick={() => toggleSupplement(s)}>
+            <span className="dot" />
+            {s}
+          </button>
+        ))}
+      </div>
+      <p className="sub" style={{ marginTop: -14 }}>
+        Los que marques van a aparecer como recordatorio diario en Inicio.
+      </p>
+
+      {error && <div className="error-text">{error}</div>}
+      {saved && (
+        <p className="sub" style={{ color: 'var(--accent-2)' }}>
+          Guardado.
+        </p>
+      )}
+
+      <button className="btn-secondary" onClick={handleSave} disabled={saving}>
+        {saving ? 'Guardando…' : 'Guardar datos personales'}
+      </button>
+    </div>
+  )
+}
+
+function EquipmentSection({ user }) {
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -96,14 +212,19 @@ export default function Equipo() {
     patch({ plates: config.plates.filter((_, i) => i !== index) })
   }
 
+  function applyGymDefaults() {
+    patch({ ...GYM_EQUIPMENT_DEFAULTS })
+  }
+
   async function handleGenerate() {
     setSaving(true)
+    setSaved(false)
     setError('')
     try {
       await saveEquipmentConfig(user.id, config)
       const generated = generateRoutine(config, config.days_per_week)
       await saveGeneratedRoutine(user.id, generated)
-      navigate('/rutina')
+      setSaved(true)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -115,9 +236,11 @@ export default function Equipo() {
 
   return (
     <div>
-      <div className="screen-eyebrow">Configuración</div>
-      <h1>Tu equipo en casa</h1>
       <p className="sub">Contános cuánto pesa cada cosa — así la rutina te sugiere cargas que realmente podés levantar.</p>
+
+      <button type="button" className="btn-link" style={{ marginBottom: 16 }} onClick={applyGymDefaults}>
+        Usar equipamiento típico de gimnasio
+      </button>
 
       <div className="field-label">Con peso</div>
 
@@ -127,12 +250,7 @@ export default function Equipo() {
             <div className="name">Barra + discos</div>
             <div className="hint">olímpica o estándar</div>
           </div>
-          <button
-            type="button"
-            className={`switch ${config.barbell_enabled ? 'on' : ''}`}
-            onClick={() => toggle('barbell_enabled')}
-            aria-label="Activar barra y discos"
-          >
+          <button type="button" className={`switch ${config.barbell_enabled ? 'on' : ''}`} onClick={() => toggle('barbell_enabled')} aria-label="Activar barra y discos">
             <span className="thumb" />
           </button>
         </div>
@@ -181,12 +299,7 @@ export default function Equipo() {
             <div className="name">Mancuernas</div>
             <div className="hint">pesos fijos que tenés</div>
           </div>
-          <button
-            type="button"
-            className={`switch ${config.dumbbells_enabled ? 'on' : ''}`}
-            onClick={() => toggle('dumbbells_enabled')}
-            aria-label="Activar mancuernas"
-          >
+          <button type="button" className={`switch ${config.dumbbells_enabled ? 'on' : ''}`} onClick={() => toggle('dumbbells_enabled')} aria-label="Activar mancuernas">
             <span className="thumb" />
           </button>
         </div>
@@ -208,12 +321,7 @@ export default function Equipo() {
             <div className="name">Kettlebell</div>
             <div className="hint">opcional</div>
           </div>
-          <button
-            type="button"
-            className={`switch ${config.kettlebell_enabled ? 'on' : ''}`}
-            onClick={() => toggle('kettlebell_enabled')}
-            aria-label="Activar kettlebell"
-          >
+          <button type="button" className={`switch ${config.kettlebell_enabled ? 'on' : ''}`} onClick={() => toggle('kettlebell_enabled')} aria-label="Activar kettlebell">
             <span className="thumb" />
           </button>
         </div>
@@ -258,24 +366,48 @@ export default function Equipo() {
       <div className="field-label">Días por semana</div>
       <div className="stepper">
         {[1, 2, 3, 4, 5, 6].map((n) => (
-          <button
-            key={n}
-            type="button"
-            className={`step-pill ${config.days_per_week === n ? 'active' : ''}`}
-            onClick={() => patch({ days_per_week: n })}
-          >
+          <button key={n} type="button" className={`step-pill ${config.days_per_week === n ? 'active' : ''}`} onClick={() => patch({ days_per_week: n })}>
             {n}
           </button>
         ))}
       </div>
 
       {error && <div className="error-text">{error}</div>}
+      {saved && (
+        <p className="sub" style={{ color: 'var(--accent-2)' }}>
+          Rutina actualizada.
+        </p>
+      )}
 
       <button className="btn-primary" onClick={handleGenerate} disabled={saving}>
-        {saving ? 'Generando…' : 'Generar rutina'}
+        {saving ? 'Generando…' : 'Generar / actualizar rutina'}
       </button>
+    </div>
+  )
+}
 
-      <button type="button" className="btn-link" style={{ display: 'block', margin: '18px auto 0' }} onClick={signOut}>
+export default function Configuracion() {
+  const { user, signOut } = useAuth()
+  const { profile, refresh } = useProfile()
+
+  if (!profile) return <div className="empty-hint">Cargando…</div>
+
+  return (
+    <div>
+      <div className="screen-eyebrow">Configuración</div>
+      <h1>Tu perfil y equipo</h1>
+
+      <div className="field-label" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+        Datos personales
+      </div>
+      <PersonalSection user={user} profile={profile} refreshProfile={refresh} />
+
+      <div className="field-label" style={{ fontSize: '0.8rem', marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
+        Equipamiento
+      </div>
+      <EquipmentSection user={user} />
+
+      <button type="button" className="btn-link" style={{ display: 'block', margin: '24px auto 0' }} onClick={signOut}>
         Cerrar sesión
       </button>
     </div>

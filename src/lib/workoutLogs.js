@@ -64,6 +64,34 @@ export async function fetchTrainingDayCount(userId, sinceDays = 30) {
   return days.size
 }
 
+// Resumen del último día entrenado: fecha, cuántos ejercicios y series hizo.
+export async function fetchLastSessionSummary(userId) {
+  const { data: latest, error: latestError } = await supabase
+    .from('workout_logs')
+    .select('performed_at, routine_day_id')
+    .eq('user_id', userId)
+    .order('performed_at', { ascending: false })
+    .limit(1)
+  if (latestError) throw latestError
+  if (!latest || latest.length === 0) return null
+
+  const date = latest[0].performed_at.slice(0, 10)
+  const { data, error } = await supabase
+    .from('workout_logs')
+    .select('exercise_id, routine_day_id')
+    .eq('user_id', userId)
+    .gte('performed_at', `${date}T00:00:00`)
+    .lte('performed_at', `${date}T23:59:59`)
+  if (error) throw error
+
+  return {
+    date,
+    routineDayId: latest[0].routine_day_id,
+    exerciseCount: new Set(data.map((r) => r.exercise_id)).size,
+    setCount: data.length,
+  }
+}
+
 // Récord personal (mayor peso levantado) por ejercicio, top N.
 export async function fetchPersonalRecords(userId, limit = 3) {
   const { data, error } = await supabase

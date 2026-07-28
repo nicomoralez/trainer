@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
-import { fetchActiveRoutine } from '../lib/routines'
-import { fetchLastLoggedDayId, fetchLastSession, logSet } from '../lib/workoutLogs'
+import { getNextWorkoutDay } from '../lib/nextWorkoutDay'
+import { fetchLastSession, logSet } from '../lib/workoutLogs'
 import { EXERCISES_BY_ID } from '../data/exercises'
 import { IconCheck } from '../components/Icons'
 
@@ -14,12 +14,12 @@ function formatTime(totalSeconds) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-export default function Hoy() {
+export default function Entrenar() {
   const { user } = useAuth()
   const [routineData, setRoutineData] = useState(null)
+  const [dayIndex, setDayIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [dayIndex, setDayIndex] = useState(0)
   const [exerciseIndex, setExerciseIndex] = useState(0)
   const [sets, setSets] = useState([])
   const [restDuration, setRestDuration] = useState(DEFAULT_REST)
@@ -28,14 +28,11 @@ export default function Hoy() {
 
   useEffect(() => {
     let active = true
-    Promise.all([fetchActiveRoutine(user.id), fetchLastLoggedDayId(user.id)])
-      .then(([routine, lastDayId]) => {
+    getNextWorkoutDay(user.id)
+      .then(({ routineData, dayIndex }) => {
         if (!active) return
-        setRoutineData(routine)
-        if (routine) {
-          const idx = routine.days.findIndex((d) => d.id === lastDayId)
-          setDayIndex(idx === -1 ? 0 : (idx + 1) % routine.days.length)
-        }
+        setRoutineData(routineData)
+        setDayIndex(dayIndex === -1 ? 0 : dayIndex)
       })
       .catch((err) => active && setError(err.message))
       .finally(() => active && setLoading(false))
@@ -50,15 +47,11 @@ export default function Hoy() {
 
   useEffect(() => {
     if (!currentExercise) return
-    setSets(
-      Array.from({ length: currentExercise.sets }, () => ({ weight: '', reps: '', done: false })),
-    )
+    setSets(Array.from({ length: currentExercise.sets }, () => ({ weight: '', reps: '', done: false })))
     fetchLastSession(user.id, currentExercise.exercise_id)
       .then((last) => {
         if (!last || last.length === 0) return
-        setSets((cur) =>
-          cur.map((s, i) => (last[i] ? { ...s, weight: s.weight || String(last[i].weight_kg ?? '') } : s)),
-        )
+        setSets((cur) => cur.map((s, i) => (last[i] ? { ...s, weight: s.weight || String(last[i].weight_kg ?? '') } : s)))
       })
       .catch(() => {})
   }, [currentExercise?.id, user.id])
@@ -114,11 +107,11 @@ export default function Hoy() {
   if (!routineData) {
     return (
       <div>
-        <div className="screen-eyebrow">Entrenamiento de hoy</div>
+        <div className="screen-eyebrow">Entrenamiento</div>
         <h1>Todavía no tenés rutina</h1>
         <p className="sub">Configurá tu equipo para generar tu Push / Pull / Legs.</p>
-        <Link to="/equipo" className="btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-          Ir a configurar equipo
+        <Link to="/configuracion" className="btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+          Ir a configuración
         </Link>
       </div>
     )
@@ -127,7 +120,7 @@ export default function Hoy() {
   if (!day || dayExercises.length === 0) {
     return (
       <div>
-        <div className="screen-eyebrow">Entrenamiento de hoy</div>
+        <div className="screen-eyebrow">Entrenamiento</div>
         <h1>{day ? day.label : 'Sin ejercicios'}</h1>
         <div className="rest-day-card">Este día no tiene ejercicios compatibles con tu equipo. Revisalo en Rutina.</div>
       </div>
@@ -137,7 +130,7 @@ export default function Hoy() {
   if (exerciseIndex >= dayExercises.length) {
     return (
       <div>
-        <div className="screen-eyebrow">Entrenamiento de hoy</div>
+        <div className="screen-eyebrow">Entrenamiento</div>
         <h1>{day.label}</h1>
         <div className="rest-day-card">
           Terminaste {day.label}. Buen entrenamiento — la próxima vez que entres acá arrancás con el siguiente día de tu rotación.
@@ -154,13 +147,10 @@ export default function Hoy() {
 
   return (
     <div>
-      <div className="screen-eyebrow">Entrenamiento de hoy</div>
+      <div className="screen-eyebrow">Entrenamiento</div>
       <h1>{day.label}</h1>
       <div className="progress-track">
-        <div
-          className="progress-fill"
-          style={{ width: `${(completedCount / dayExercises.length) * 100}%` }}
-        />
+        <div className="progress-fill" style={{ width: `${(completedCount / dayExercises.length) * 100}%` }} />
       </div>
       <div className="progress-caption">
         <span>
@@ -225,14 +215,7 @@ export default function Hoy() {
         <div className="timer-ring">
           <svg viewBox="0 0 80 80">
             <circle className="bg" cx="40" cy="40" r="34" />
-            <circle
-              className="fg"
-              cx="40"
-              cy="40"
-              r="34"
-              strokeDasharray={circumference}
-              strokeDashoffset={dashoffset}
-            />
+            <circle className="fg" cx="40" cy="40" r="34" strokeDasharray={circumference} strokeDashoffset={dashoffset} />
           </svg>
           <div className="time">{formatTime(restRemaining)}</div>
         </div>

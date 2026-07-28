@@ -1,14 +1,3 @@
-export function IconEquipo(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
-      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    </svg>
-  )
-}
-
 export function IconRutina(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
@@ -17,19 +6,41 @@ export function IconRutina(props) {
   )
 }
 
-export function IconHoy(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M8.5 12.5l2.2 2.2L16 9.5" />
-    </svg>
-  )
-}
-
 export function IconProgreso(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
       <path d="M4 19V9M11 19V4M18 19v-6" />
+    </svg>
+  )
+}
+
+export function IconInicio(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
+      <path d="M4 11l8-7 8 7" />
+      <path d="M6 9.5V20h5v-6h2v6h5V9.5" />
+    </svg>
+  )
+}
+
+export function IconConfig(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <circle cx="15" cy="6" r="2" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <circle cx="9" cy="12" r="2" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+      <circle cx="17" cy="18" r="2" />
+    </svg>
+  )
+}
+
+export function IconPlay(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor" stroke="none" />
     </svg>
   )
 }

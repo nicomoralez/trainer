@@ -1,20 +1,24 @@
 import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/AuthContext'
+import { ProfileProvider, useProfile } from './lib/ProfileContext'
 import { supabaseConfigured } from './lib/supabaseClient'
 import SetupNeeded from './pages/SetupNeeded'
 import Login from './pages/Login'
-import Equipo from './pages/Equipo'
+import Onboarding from './pages/Onboarding'
+import Inicio from './pages/Inicio'
 import Rutina from './pages/Rutina'
-import Hoy from './pages/Hoy'
+import Entrenar from './pages/Entrenar'
 import Progreso from './pages/Progreso'
-import { IconEquipo, IconHoy, IconProgreso, IconRutina } from './components/Icons'
+import Configuracion from './pages/Configuracion'
+import { IconConfig, IconInicio, IconPlay, IconProgreso, IconRutina } from './components/Icons'
 
 function TabBar() {
   const tabs = [
-    { to: '/equipo', label: 'Equipo', Icon: IconEquipo },
+    { to: '/inicio', label: 'Inicio', Icon: IconInicio },
     { to: '/rutina', label: 'Rutina', Icon: IconRutina },
-    { to: '/hoy', label: 'Hoy', Icon: IconHoy },
+    { to: '/entrenar', label: 'Entrenar', Icon: IconPlay },
     { to: '/progreso', label: 'Progreso', Icon: IconProgreso },
+    { to: '/configuracion', label: 'Config.', Icon: IconConfig },
   ]
   return (
     <nav className="tabbar">
@@ -33,11 +37,12 @@ function AppShell() {
     <div className="app-shell">
       <main className="app-main">
         <Routes>
-          <Route path="/equipo" element={<Equipo />} />
+          <Route path="/inicio" element={<Inicio />} />
           <Route path="/rutina" element={<Rutina />} />
-          <Route path="/hoy" element={<Hoy />} />
+          <Route path="/entrenar" element={<Entrenar />} />
           <Route path="/progreso" element={<Progreso />} />
-          <Route path="*" element={<Navigate to="/hoy" replace />} />
+          <Route path="/configuracion" element={<Configuracion />} />
+          <Route path="*" element={<Navigate to="/inicio" replace />} />
         </Routes>
       </main>
       <TabBar />
@@ -45,11 +50,22 @@ function AppShell() {
   )
 }
 
+function ProfileGate() {
+  const { profile, loading } = useProfile()
+  if (loading) return <div className="centered-loading">Cargando…</div>
+  if (!profile) return <Onboarding />
+  return <AppShell />
+}
+
 function AuthGate() {
   const { user, loading } = useAuth()
   if (loading) return <div className="centered-loading">Cargando…</div>
   if (!user) return <Login />
-  return <AppShell />
+  return (
+    <ProfileProvider>
+      <ProfileGate />
+    </ProfileProvider>
+  )
 }
 
 export default function App() {

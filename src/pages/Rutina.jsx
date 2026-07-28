@@ -107,8 +107,8 @@ export default function Rutina() {
         <div className="screen-eyebrow">Tu semana</div>
         <h1>Todavía no tenés rutina</h1>
         <p className="sub">Configurá tu equipo y generamos tu Push / Pull / Legs.</p>
-        <Link to="/equipo" className="btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-          Ir a configurar equipo
+        <Link to="/configuracion" className="btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+          Ir a configuración
         </Link>
       </div>
     )
