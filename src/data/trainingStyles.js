@@ -41,6 +41,17 @@ export const TRAINING_STYLES = {
       { type: 'arms', label: 'Brazos', muscles: ['biceps', 'triceps'] },
     ],
   },
+  calisthenics: {
+    id: 'calisthenics',
+    label: 'Calistenia',
+    description: 'Solo peso corporal y barra de dominadas — nada de mancuernas ni máquinas. Ideal de 2 a 4 días.',
+    bodyweightOnly: true,
+    days: [
+      { type: 'push', label: 'Empuje', muscles: ['chest', 'shoulders', 'triceps'] },
+      { type: 'pull', label: 'Tracción', muscles: ['back', 'biceps'] },
+      { type: 'legs', label: 'Pierna', muscles: ['legs', 'abs'] },
+    ],
+  },
 }
 
 export const TRAINING_STYLE_LIST = Object.values(TRAINING_STYLES)

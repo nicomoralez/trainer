@@ -18,6 +18,17 @@ function isUsable(exercise, availableTags) {
   return exercise.equipment.every((tag) => availableTags.has(tag))
 }
 
+// Para el modo Calistenia: saca del set de equipamiento disponible todo lo
+// que sea peso externo (barra, mancuernas, kettlebell, polea), dejando solo
+// peso corporal + barra de dominadas + banco, que sí son "calistenia".
+const WEIGHTED_TAGS = ['barbell', 'dumbbells', 'kettlebell', 'cable']
+
+export function restrictToBodyweight(tags) {
+  const restricted = new Set(tags)
+  WEIGHTED_TAGS.forEach((t) => restricted.delete(t))
+  return restricted
+}
+
 // Ejercicios de un grupo muscular que el usuario puede hacer con su
 // equipamiento actual. Se usa para generar la rutina y para ofrecer
 // opciones al editarla (swap / agregar ejercicio).
@@ -77,7 +88,7 @@ function pickRoundRobin(muscles, count, availableTags, pointers) {
 // ejercicios compatibles con el equipamiento disponible.
 export function generateRoutine(config, daysPerWeek, styleId = 'ppl') {
   const style = TRAINING_STYLES[styleId] ?? TRAINING_STYLES.ppl
-  const availableTags = availableEquipmentTags(config)
+  const availableTags = style.bodyweightOnly ? restrictToBodyweight(availableEquipmentTags(config)) : availableEquipmentTags(config)
   const exercisesPerDay = 5
 
   const pointers = {} // { [muscle]: cursor } compartido entre días para variedad
