@@ -84,8 +84,8 @@ export async function fetchTrainingStreak(userId) {
   return streak
 }
 
-// Entrenamientos (días distintos) de la semana calendario actual (lunes a domingo).
-export async function fetchWeekTrainingCount(userId) {
+// Días distintos entrenados en la semana calendario actual (lunes a domingo).
+export async function fetchWeekTrainingDays(userId) {
   const now = new Date()
   const dow = (now.getDay() + 6) % 7 // 0 = lunes
   const monday = new Date(now)
@@ -98,7 +98,13 @@ export async function fetchWeekTrainingCount(userId) {
     .eq('user_id', userId)
     .gte('performed_at', monday.toISOString())
   if (error) throw error
-  return new Set(data.map((r) => r.performed_at.slice(0, 10))).size
+  return new Set(data.map((r) => r.performed_at.slice(0, 10)))
+}
+
+// Entrenamientos (días distintos) de la semana calendario actual.
+export async function fetchWeekTrainingCount(userId) {
+  const days = await fetchWeekTrainingDays(userId)
+  return days.size
 }
 
 // Mejor peso histórico registrado para un ejercicio (null si nunca lo hizo).

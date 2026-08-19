@@ -6,14 +6,6 @@ export function IconFlame(props) {
   )
 }
 
-export function IconRutina(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
-      <path d="M4 6h16M4 12h16M4 18h10" />
-    </svg>
-  )
-}
-
 export function IconProgreso(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
@@ -81,6 +73,23 @@ export function IconUp(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth="2.5" {...props}>
       <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  )
+}
+
+export function IconClock(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  )
+}
+
+export function IconChevronLeft(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2.5" {...props}>
+      <path d="M15 6l-6 6 6 6" />
     </svg>
   )
 }

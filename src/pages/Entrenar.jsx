@@ -3,11 +3,18 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { getNextWorkoutDay } from '../lib/nextWorkoutDay'
 import { fetchLastSession, fetchMaxWeightForExercise, logSet } from '../lib/workoutLogs'
-import { EXERCISES_BY_ID } from '../data/exercises'
-import { IconCheck } from '../components/Icons'
+import { fetchEquipmentConfig } from '../lib/equipmentConfig'
+import { generateRoutine, usableExercisesForMuscles } from '../lib/routineGenerator'
+import { addRoutineExercise, removeRoutineExercise, swapExercisePositions, swapRoutineExercise } from '../lib/routines'
+import { EXERCISES_BY_ID, MUSCLE_LABEL } from '../data/exercises'
+import { TRAINING_STYLE_LIST } from '../data/trainingStyles'
+import { IconCheck, IconChevronLeft, IconClock, IconRemove } from '../components/Icons'
 import { feedbackPR, feedbackSetDone, feedbackWorkoutDone } from '../lib/feedback'
+import { getGenderPref, setGenderPref } from '../lib/genderPref'
+import BodyDiagram from '../components/BodyDiagram'
 
 const DEFAULT_REST = 90
+const TONE_CLASSES = ['a', 'b', 'c']
 
 function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60)
@@ -15,12 +22,61 @@ function formatTime(totalSeconds) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+function dayMuscles(day) {
+  return day.split_type.split(',')
+}
+
+// Convierte el resultado de generateRoutine() (formato "para guardar en la
+// base") al mismo shape que usan los días persistidos, con ids sintéticos —
+// así el resto de la pantalla los puede tratar igual sin importar el origen.
+function toDisplayDays(generated, styleId) {
+  return generated.days.map((d, i) => ({
+    id: `ephemeral-${styleId}-${i}`,
+    label: d.label,
+    split_type: d.splitType,
+    exercises: d.exercises.map((ex, j) => ({
+      id: `ephemeral-${styleId}-${i}-${j}`,
+      exercise_id: ex.exerciseId,
+      position: ex.position,
+      sets: ex.sets,
+      reps_min: ex.reps_min,
+      reps_max: ex.reps_max,
+    })),
+  }))
+}
+
+function EntrenarSkeleton() {
+  return (
+    <div>
+      <div className="screen-eyebrow">Entrenamiento</div>
+      <div className="skel" style={{ width: '55%', height: 28, marginBottom: 16 }} />
+      <div className="day-grid">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="skel" style={{ height: 68, borderRadius: 12 }} />
+        ))}
+      </div>
+      <div className="skel" style={{ width: '100%', height: 260, borderRadius: 14, marginTop: 16 }} />
+    </div>
+  )
+}
+
 export default function Entrenar() {
   const { user } = useAuth()
-  const [routineData, setRoutineData] = useState(null)
-  const [dayIndex, setDayIndex] = useState(0)
+
+  // ---- selección de sesión ----
+  const [phase, setPhase] = useState('select')
   const [loading, setLoading] = useState(true)
+  const [routineData, setRoutineData] = useState(null)
+  const [config, setConfig] = useState(null)
+  const [recommendedDayId, setRecommendedDayId] = useState(null)
+  const [selectedDayId, setSelectedDayId] = useState(null)
+  const [selectedStyleId, setSelectedStyleId] = useState(null)
+  const [gender, setGender] = useState(getGenderPref)
   const [error, setError] = useState('')
+
+  // ---- sesión activa ----
+  const [activeDay, setActiveDay] = useState(null)
+  const [activeIsEphemeral, setActiveIsEphemeral] = useState(false)
   const [exerciseIndex, setExerciseIndex] = useState(0)
   const [sets, setSets] = useState([])
   const [restDuration, setRestDuration] = useState(DEFAULT_REST)
@@ -29,14 +85,18 @@ export default function Entrenar() {
   const [showCues, setShowCues] = useState(false)
   const [bestWeight, setBestWeight] = useState(null)
   const [prToast, setPrToast] = useState('')
+  const [elapsedSec, setElapsedSec] = useState(0)
 
   useEffect(() => {
     let active = true
-    getNextWorkoutDay(user.id)
-      .then(({ routineData, dayIndex }) => {
+    Promise.all([getNextWorkoutDay(user.id), fetchEquipmentConfig(user.id)])
+      .then(([next, cfg]) => {
         if (!active) return
-        setRoutineData(routineData)
-        setDayIndex(dayIndex === -1 ? 0 : dayIndex)
+        setRoutineData(next.routineData)
+        setConfig(cfg)
+        setRecommendedDayId(next.day?.id ?? null)
+        setSelectedDayId(next.day?.id ?? next.routineData?.days?.[0]?.id ?? null)
+        setSelectedStyleId(cfg.training_style ?? 'ppl')
       })
       .catch((err) => active && setError(err.message))
       .finally(() => active && setLoading(false))
@@ -45,7 +105,83 @@ export default function Entrenar() {
     }
   }, [user.id])
 
-  const day = routineData?.days?.[dayIndex] ?? null
+  function updateDay(dayId, updater) {
+    setRoutineData((rd) => ({
+      ...rd,
+      days: rd.days.map((d) => (d.id === dayId ? { ...d, exercises: updater(d.exercises) } : d)),
+    }))
+  }
+
+  async function handleRemove(day, exercise) {
+    try {
+      await removeRoutineExercise(exercise.id)
+      updateDay(day.id, (exs) => exs.filter((e) => e.id !== exercise.id))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleSwap(day, exercise, newExerciseId) {
+    try {
+      await swapRoutineExercise(exercise.id, newExerciseId)
+      updateDay(day.id, (exs) => exs.map((e) => (e.id === exercise.id ? { ...e, exercise_id: newExerciseId } : e)))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleAdd(day) {
+    const used = new Set(day.exercises.map((e) => e.exercise_id))
+    const pool = usableExercisesForMuscles(config, dayMuscles(day))
+    const next = pool.find((e) => !used.has(e.id))
+    if (!next) return
+    const position = day.exercises.length > 0 ? Math.max(...day.exercises.map((e) => e.position)) + 1 : 0
+    try {
+      await addRoutineExercise(user.id, day.id, next.id, position)
+      updateDay(day.id, (exs) => [
+        ...exs,
+        { id: `temp-${next.id}-${Date.now()}`, exercise_id: next.id, position, sets: 3, reps_min: 8, reps_max: 12, routine_day_id: day.id },
+      ])
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleMove(day, exercise, direction) {
+    const sorted = [...day.exercises].sort((a, b) => a.position - b.position)
+    const idx = sorted.findIndex((e) => e.id === exercise.id)
+    const neighborIdx = idx + direction
+    if (neighborIdx < 0 || neighborIdx >= sorted.length) return
+    const neighbor = sorted[neighborIdx]
+    try {
+      await swapExercisePositions(exercise, neighbor)
+      updateDay(day.id, (exs) =>
+        exs.map((e) => {
+          if (e.id === exercise.id) return { ...e, position: neighbor.position }
+          if (e.id === neighbor.id) return { ...e, position: exercise.position }
+          return e
+        }),
+      )
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  function toggleGender(next) {
+    setGender(next)
+    setGenderPref(next)
+  }
+
+  function startSession(day, ephemeral) {
+    setActiveDay(day)
+    setActiveIsEphemeral(ephemeral)
+    setExerciseIndex(0)
+    setElapsedSec(0)
+    setPhase('active')
+  }
+
+  // ---- sesión activa: día y ejercicio actuales ----
+  const day = phase === 'active' ? activeDay : null
   const dayExercises = useMemo(() => [...(day?.exercises ?? [])].sort((a, b) => a.position - b.position), [day])
   const currentExercise = dayExercises[exerciseIndex] ?? null
 
@@ -62,7 +198,7 @@ export default function Entrenar() {
     fetchMaxWeightForExercise(user.id, currentExercise.exercise_id)
       .then((max) => setBestWeight(max))
       .catch(() => {})
-  }, [currentExercise?.id, user.id])
+  }, [currentExercise, user.id])
 
   useEffect(() => {
     if (!resting) return
@@ -74,6 +210,12 @@ export default function Entrenar() {
     return () => clearTimeout(t)
   }, [resting, restRemaining])
 
+  useEffect(() => {
+    if (phase !== 'active') return
+    const id = setInterval(() => setElapsedSec((s) => s + 1), 1000)
+    return () => clearInterval(id)
+  }, [phase])
+
   function updateSet(i, field, value) {
     setSets((cur) => cur.map((s, idx) => (idx === i ? { ...s, [field]: value } : s)))
   }
@@ -84,7 +226,7 @@ export default function Entrenar() {
     const weightNum = s.weight ? parseFloat(s.weight) : null
     try {
       await logSet(user.id, {
-        routineDayId: day.id,
+        routineDayId: activeIsEphemeral ? null : day.id,
         exerciseId: currentExercise.exercise_id,
         setNumber: i + 1,
         weightKg: weightNum,
@@ -122,14 +264,14 @@ export default function Entrenar() {
     setExerciseIndex((i) => i + 1)
   }
 
-  if (loading) return <div className="empty-hint">Cargando…</div>
+  if (loading) return <EntrenarSkeleton />
 
   if (!routineData) {
     return (
       <div>
         <div className="screen-eyebrow">Entrenamiento</div>
         <h1>Todavía no tenés rutina</h1>
-        <p className="sub">Configurá tu equipo para generar tu Push / Pull / Legs.</p>
+        <p className="sub">Configurá tu equipo para generar tu rutina.</p>
         <Link to="/configuracion" className="btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
           Ir a configuración
         </Link>
@@ -137,12 +279,166 @@ export default function Entrenar() {
     )
   }
 
+  // ================= fase: elegir sesión =================
+  if (phase === 'select') {
+    const persistedStyleId = config?.training_style ?? 'ppl'
+    const isPersistedStyle = selectedStyleId === persistedStyleId
+
+    const generated = !isPersistedStyle && config ? generateRoutine(config, config.days_per_week || 3, selectedStyleId) : null
+    const ephemeralDays = generated ? toDisplayDays(generated, selectedStyleId) : []
+    const daysForStyle = isPersistedStyle ? routineData.days : ephemeralDays
+
+    const selectedDay = daysForStyle.find((d) => d.id === selectedDayId) ?? daysForStyle[0]
+    const activeMuscles = new Set(selectedDay.exercises.map((e) => EXERCISES_BY_ID[e.exercise_id]?.muscle).filter(Boolean))
+    const muscleNames = [...activeMuscles].map((m) => MUSCLE_LABEL[m] ?? m)
+    const used = new Set(selectedDay.exercises.map((e) => e.exercise_id))
+    const pool = config && isPersistedStyle ? usableExercisesForMuscles(config, dayMuscles(selectedDay)) : []
+    const canAdd = isPersistedStyle && pool.some((e) => !used.has(e.id))
+    const sortedExercises = [...selectedDay.exercises].sort((a, b) => a.position - b.position)
+
+    return (
+      <div>
+        <div className="screen-eyebrow">Entrenamiento</div>
+        <h1>¿Qué entrenás hoy?</h1>
+        <p className="sub">Elegí un tipo de entrenamiento, después el día, ajustá si querés, y arrancá.</p>
+
+        {error && <div className="error-text">{error}</div>}
+
+        <div className="style-row">
+          {TRAINING_STYLE_LIST.map((style) => (
+            <button
+              key={style.id}
+              type="button"
+              className={`style-pill ${selectedStyleId === style.id ? 'active' : ''}`}
+              onClick={() => setSelectedStyleId(style.id)}
+            >
+              <span className="n">{style.label}</span>
+              <span className="d">{style.id === persistedStyleId ? 'Tu plan' : 'Probar hoy'}</span>
+            </button>
+          ))}
+        </div>
+
+        {!isPersistedStyle && (
+          <div className="ephemeral-note">Sesión generada al toque para hoy — no toca tu plan guardado ni se puede editar.</div>
+        )}
+
+        <div className="day-grid">
+          {daysForStyle.map((d, i) => (
+            <button
+              key={d.id}
+              type="button"
+              className={`day-tile enter ${selectedDay.id === d.id ? 'selected' : ''}`}
+              style={{ '--d': `${i * 50}ms` }}
+              onClick={() => setSelectedDayId(d.id)}
+            >
+              {isPersistedStyle && d.id === recommendedDayId && <span className="badge-rec">Recomendado</span>}
+              <span className={`tone-dot ${TONE_CLASSES[i % 3]}`} />
+              <div className="name">{d.label}</div>
+              <div className="count">{d.exercises.length} ejercicios</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="day-detail-card chart-card enter" style={{ '--d': '80ms' }}>
+          <div className="gender-toggle">
+            <button type="button" className={gender === 'male' ? 'active' : ''} onClick={() => toggleGender('male')}>
+              Hombre
+            </button>
+            <button type="button" className={gender === 'female' ? 'active' : ''} onClick={() => toggleGender('female')}>
+              Mujer
+            </button>
+          </div>
+
+          <BodyDiagram gender={gender} activeMuscles={activeMuscles} />
+
+          {muscleNames.length > 0 && (
+            <p className="sub" style={{ textAlign: 'center', margin: '2px 0 16px' }}>
+              Vas a entrenar: {muscleNames.join(' · ')}
+            </p>
+          )}
+
+          <div className="panel-title">{selectedDay.label}</div>
+          {isPersistedStyle
+            ? sortedExercises.map((ex, i) => {
+                const options = pool.filter((e) => e.id === ex.exercise_id || !used.has(e.id))
+                return (
+                  <div className="ex-row" key={ex.id}>
+                    <span className="arrows">
+                      <button type="button" onClick={() => handleMove(selectedDay, ex, -1)} disabled={i === 0} aria-label="Mover arriba">
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMove(selectedDay, ex, 1)}
+                        disabled={i === sortedExercises.length - 1}
+                        aria-label="Mover abajo"
+                      >
+                        ↓
+                      </button>
+                    </span>
+                    <span className="info">
+                      <select value={ex.exercise_id} onChange={(e) => handleSwap(selectedDay, ex, e.target.value)}>
+                        {options.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="s">
+                        {ex.sets} × {ex.reps_min}-{ex.reps_max}
+                      </div>
+                    </span>
+                    <button type="button" className="icon-btn" onClick={() => handleRemove(selectedDay, ex)} aria-label="Quitar ejercicio">
+                      <IconRemove className="remove" />
+                    </button>
+                  </div>
+                )
+              })
+            : sortedExercises.map((ex) => {
+                const meta = EXERCISES_BY_ID[ex.exercise_id]
+                return (
+                  <div className="ex-row" key={ex.id}>
+                    <span className="info">
+                      <div className="n">{meta?.name ?? ex.exercise_id}</div>
+                      <div className="s">
+                        {ex.sets} × {ex.reps_min}-{ex.reps_max}
+                      </div>
+                    </span>
+                  </div>
+                )
+              })}
+          {sortedExercises.length === 0 && <p className="empty-hint">No hay ejercicios compatibles con tu equipo para este día.</p>}
+          {canAdd && (
+            <button type="button" className="add-ex" onClick={() => handleAdd(selectedDay)}>
+              + Agregar ejercicio
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="hero-cta"
+            style={{ marginTop: 18 }}
+            disabled={sortedExercises.length === 0}
+            onClick={() => startSession(selectedDay, !isPersistedStyle)}
+          >
+            Empezar entrenamiento →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ================= fase: entrenando =================
+
   if (!day || dayExercises.length === 0) {
     return (
       <div>
         <div className="screen-eyebrow">Entrenamiento</div>
         <h1>{day ? day.label : 'Sin ejercicios'}</h1>
-        <div className="rest-day-card">Este día no tiene ejercicios compatibles con tu equipo. Revisalo en Rutina.</div>
+        <div className="rest-day-card">Este día no tiene ejercicios compatibles con tu equipo.</div>
+        <button type="button" className="btn-secondary" style={{ marginTop: 14 }} onClick={() => setPhase('select')}>
+          Volver a elegir
+        </button>
       </div>
     )
   }
@@ -153,14 +449,18 @@ export default function Entrenar() {
         <div className="screen-eyebrow">Entrenamiento</div>
         <h1>{day.label}</h1>
         <div className="rest-day-card">
-          Terminaste {day.label}. Buen entrenamiento — la próxima vez que entres acá arrancás con el siguiente día de tu rotación.
+          Terminaste {day.label} en {formatTime(elapsedSec)}. Buen entrenamiento.
         </div>
+        <button type="button" className="btn-primary" style={{ marginTop: 14 }} onClick={() => setPhase('select')}>
+          Volver a elegir rutina
+        </button>
       </div>
     )
   }
 
   const completedCount = exerciseIndex
   const exerciseMeta = EXERCISES_BY_ID[currentExercise.exercise_id]
+  const nextExerciseMeta = dayExercises[exerciseIndex + 1] ? EXERCISES_BY_ID[dayExercises[exerciseIndex + 1].exercise_id] : null
   const circumference = 2 * Math.PI * 34
   const fraction = restDuration > 0 ? restRemaining / restDuration : 0
   const dashoffset = circumference * (1 - fraction)
@@ -168,8 +468,15 @@ export default function Entrenar() {
   return (
     <div>
       {prToast && <div className="pr-toast">{prToast}</div>}
+      <button type="button" className="back-link" onClick={() => setPhase('select')}>
+        <IconChevronLeft /> Cambiar rutina
+      </button>
       <div className="screen-eyebrow">Entrenamiento</div>
       <h1>{day.label}</h1>
+      <span className="session-timer">
+        <IconClock />
+        {formatTime(elapsedSec)}
+      </span>
       <div className="progress-track">
         <div className="progress-fill" style={{ width: `${(completedCount / dayExercises.length) * 100}%` }} />
       </div>
@@ -182,7 +489,7 @@ export default function Entrenar() {
 
       {error && <div className="error-text">{error}</div>}
 
-      <div className="ex-current">
+      <div className="ex-current enter" key={currentExercise.id}>
         <div className="n">{exerciseMeta?.name ?? currentExercise.exercise_id}</div>
         <div className="target">
           Objetivo · {currentExercise.sets} series × {currentExercise.reps_min}–{currentExercise.reps_max} reps
@@ -201,6 +508,11 @@ export default function Entrenar() {
             )}
           </>
         )}
+        {nextExerciseMeta && (
+          <div className="next-up">
+            Próximo: <b>{nextExerciseMeta.name}</b>
+          </div>
+        )}
       </div>
 
       <table className="set-table">
@@ -214,7 +526,7 @@ export default function Entrenar() {
         </thead>
         <tbody>
           {sets.map((s, i) => (
-            <tr key={i} className={s.done ? 'done' : ''}>
+            <tr key={i} className={`enter ${s.done ? 'done' : ''}`} style={{ '--d': `${i * 40}ms` }}>
               <td>{i + 1}</td>
               <td>
                 <input
@@ -247,7 +559,7 @@ export default function Entrenar() {
       </table>
 
       <div className="timer-block">
-        <div className="timer-ring">
+        <div className={`timer-ring ${resting && restRemaining <= 5 && restRemaining > 0 ? 'low' : ''}`}>
           <svg viewBox="0 0 80 80">
             <circle className="bg" cx="40" cy="40" r="34" />
             <circle className="fg" cx="40" cy="40" r="34" strokeDasharray={circumference} strokeDashoffset={dashoffset} />

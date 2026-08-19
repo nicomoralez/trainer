@@ -1,9 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../lib/AuthContext'
 import { addBodyMetric, fetchBodyMetrics, fetchFirstAndLatestWeight } from '../lib/bodyMetrics'
 import { fetchPersonalRecords, fetchTrainingDayCount } from '../lib/workoutLogs'
 import { EXERCISES_BY_ID } from '../data/exercises'
+import { useCountUp } from '../lib/useCountUp'
 import { IconUp } from '../components/Icons'
+
+function ProgresoSkeleton() {
+  return (
+    <div>
+      <div className="screen-eyebrow">Seguimiento</div>
+      <div className="skel" style={{ width: '50%', height: 28, marginBottom: 14 }} />
+      <div className="stat-row">
+        <div className="skel" style={{ height: 62, flex: 1 }} />
+        <div className="skel" style={{ height: 62, flex: 1 }} />
+      </div>
+      <div className="skel" style={{ width: '100%', height: 140, borderRadius: 14, marginBottom: 20 }} />
+      <div className="skel" style={{ width: '100%', height: 46, borderRadius: 12 }} />
+    </div>
+  )
+}
 
 function shortDate(isoDate) {
   const d = new Date(`${isoDate}T00:00:00`)
@@ -38,7 +54,7 @@ export default function Progreso() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  function reload() {
+  const reload = useCallback(() => {
     return Promise.all([
       fetchBodyMetrics(user.id, 8),
       fetchPersonalRecords(user.id, 3),
@@ -50,7 +66,7 @@ export default function Progreso() {
       setTrainingDays(t)
       setWeightRange(w)
     })
-  }
+  }, [user.id])
 
   useEffect(() => {
     let active = true
@@ -60,7 +76,7 @@ export default function Progreso() {
     return () => {
       active = false
     }
-  }, [user.id])
+  }, [reload])
 
   async function handleLogWeight(e) {
     e.preventDefault()
@@ -78,7 +94,10 @@ export default function Progreso() {
     }
   }
 
-  if (loading) return <div className="empty-hint">Cargando tu progreso…</div>
+  const animatedTrainingDays = useCountUp(trainingDays)
+  const animatedCurrentWeight = useCountUp(weightRange.latest?.weight_kg ?? 0)
+
+  if (loading) return <ProgresoSkeleton />
 
   const { first: initialWeight, latest: currentWeight } = weightRange
   const delta = initialWeight && currentWeight && initialWeight.recorded_at !== currentWeight.recorded_at
@@ -95,23 +114,23 @@ export default function Progreso() {
       {error && <div className="error-text">{error}</div>}
 
       <div className="stat-row">
-        <div className="stat-tile">
+        <div className="stat-tile enter" style={{ '--d': '40ms' }}>
           <div className="v">{initialWeight ? `${initialWeight.weight_kg} kg` : '—'}</div>
           <div className="l">Peso inicial{initialWeight ? ` · ${shortDate(initialWeight.recorded_at)}` : ''}</div>
         </div>
-        <div className="stat-tile">
-          <div className="v">{currentWeight ? `${currentWeight.weight_kg} kg` : '—'}</div>
+        <div className="stat-tile enter" style={{ '--d': '80ms' }}>
+          <div className="v">{currentWeight ? `${animatedCurrentWeight.toFixed(1)} kg` : '—'}</div>
           <div className="l">Peso actual{delta !== null ? ` · ${delta > 0 ? '+' : ''}${delta.toFixed(1)} kg` : ''}</div>
         </div>
       </div>
       <div className="stat-row">
-        <div className="stat-tile">
-          <div className="v">{trainingDays}</div>
+        <div className="stat-tile enter" style={{ '--d': '120ms' }}>
+          <div className="v">{Math.round(animatedTrainingDays)}</div>
           <div className="l">Días entrenados (últimos 30)</div>
         </div>
       </div>
 
-      <div className="chart-card">
+      <div className="chart-card enter" style={{ '--d': '160ms' }}>
         <div className="ch-title">Peso corporal · últimos registros</div>
         {metrics.length >= 2 ? (
           <>
@@ -120,7 +139,16 @@ export default function Progreso() {
               <line x1="10" y1="55" x2="290" y2="55" stroke="var(--line)" strokeWidth="1" />
               <line x1="10" y1="80" x2="290" y2="80" stroke="var(--line)" strokeWidth="1" />
               <polygon points={area} fill="var(--accent-2-soft)" />
-              <polyline points={points} fill="none" stroke="var(--accent-2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline
+                points={points}
+                fill="none"
+                stroke="var(--accent-2)"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                style={{ strokeDasharray: 1, strokeDashoffset: 1, animation: 'draw-line 1s ease-out forwards' }}
+              />
               {last && <circle cx={last[0]} cy={last[1]} r="4" fill="var(--accent-2)" />}
             </svg>
             <div className="chart-axis">
@@ -153,8 +181,8 @@ export default function Progreso() {
         <p className="empty-hint">Todavía no registraste series con peso.</p>
       ) : (
         <div className="pr-list">
-          {records.map((r) => (
-            <div className="pr-item" key={r.exercise_id}>
+          {records.map((r, i) => (
+            <div className="pr-item enter" style={{ '--d': `${i * 60}ms` }} key={r.exercise_id}>
               <span className="pn">
                 <div className="n">{EXERCISES_BY_ID[r.exercise_id]?.name ?? r.exercise_id}</div>
                 <div className="d">{shortDate(r.performed_at.slice(0, 10))}</div>

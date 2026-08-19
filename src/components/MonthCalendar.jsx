@@ -81,7 +81,7 @@ export default function MonthCalendar({ userId }) {
           const supplements = activity.supplements.has(key)
           const isToday = isCurrentMonth && d === today.getDate()
           return (
-            <div className={`cal-cell ${isToday ? 'today' : ''}`} key={key}>
+            <div className={`cal-cell ${isToday ? 'today' : ''}`} style={{ '--d': `${Math.min(i, 20) * 12}ms` }} key={key}>
               <span>{d}</span>
               {(trained || supplements) && (
                 <span className="cal-dots">
