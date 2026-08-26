@@ -1367,6 +1367,30 @@ h1 {
   margin-bottom: 2px;
 }
 
+.detail-sheet {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+.detail-tag {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-transform: capitalize;
+}
+.detail-tag.equip {
+  color: var(--accent-2);
+  border-color: var(--accent-2);
+}
+
 .set-table {
   width: 100%;
   border-collapse: collapse;
