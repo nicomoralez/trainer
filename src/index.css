@@ -881,6 +881,40 @@ h1 {
     filter: drop-shadow(0 0 3.5px var(--heat-glow));
   }
 }
+.demo-wrap {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+.demo-shot {
+  position: relative;
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  aspect-ratio: 4 / 3;
+  background: var(--bg-soft);
+}
+.demo-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.demo-shot .demo-label {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: #06090ccc;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
 .bd-view-label {
   font-family: var(--font-mono);
   font-size: 0.62rem;

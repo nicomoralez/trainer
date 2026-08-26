@@ -8,6 +8,7 @@ import { generateRoutine, usableExercisesForMuscles } from '../lib/routineGenera
 import { addRoutineExercise, removeRoutineExercise, swapExercisePositions, swapRoutineExercise } from '../lib/routines'
 import { EXERCISES_BY_ID, MUSCLE_LABEL } from '../data/exercises'
 import { TRAINING_STYLE_LIST } from '../data/trainingStyles'
+import { getExerciseDemo } from '../data/exerciseDemos'
 import { IconCheck, IconChevronLeft, IconClock, IconRemove } from '../components/Icons'
 import { feedbackPR, feedbackSetDone, feedbackWorkoutDone } from '../lib/feedback'
 import { getGenderPref, setGenderPref } from '../lib/genderPref'
@@ -460,6 +461,7 @@ export default function Entrenar() {
 
   const completedCount = exerciseIndex
   const exerciseMeta = EXERCISES_BY_ID[currentExercise.exercise_id]
+  const exerciseDemo = getExerciseDemo(currentExercise.exercise_id)
   const nextExerciseMeta = dayExercises[exerciseIndex + 1] ? EXERCISES_BY_ID[dayExercises[exerciseIndex + 1].exercise_id] : null
   const circumference = 2 * Math.PI * 34
   const fraction = restDuration > 0 ? restRemaining / restDuration : 0
@@ -494,6 +496,18 @@ export default function Entrenar() {
         <div className="target">
           Objetivo · {currentExercise.sets} series × {currentExercise.reps_min}–{currentExercise.reps_max} reps
         </div>
+        {exerciseDemo && (
+          <div className="demo-wrap">
+            <div className="demo-shot">
+              <img src={exerciseDemo.start} alt={`${exerciseMeta.name} — posición inicial`} loading="lazy" />
+              <span className="demo-label">Inicio</span>
+            </div>
+            <div className="demo-shot">
+              <img src={exerciseDemo.end} alt={`${exerciseMeta.name} — posición final`} loading="lazy" />
+              <span className="demo-label">Fin</span>
+            </div>
+          </div>
+        )}
         {exerciseMeta?.cues && (
           <>
             <button type="button" className="btn-link" style={{ marginTop: 10 }} onClick={() => setShowCues((v) => !v)}>
