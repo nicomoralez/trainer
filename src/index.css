@@ -881,6 +881,16 @@ h1 {
     filter: drop-shadow(0 0 3.5px var(--heat-glow));
   }
 }
+.bd-region.bd-region-primary {
+  stroke: var(--accent-2);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 3px var(--accent-2));
+}
+.bd-region.bd-region-secondary {
+  stroke: var(--accent-2);
+  stroke-width: 0.8;
+  stroke-opacity: 0.55;
+}
 .demo-wrap {
   display: flex;
   gap: 8px;
