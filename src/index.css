@@ -1076,6 +1076,14 @@ h1 {
   font-size: 0.6rem;
   font-family: var(--font-mono);
 }
+.day-tile-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-dim);
+}
+.day-tile.selected .day-tile-icon {
+  color: var(--accent);
+}
 
 .modal-backdrop {
   position: fixed;
@@ -1286,6 +1294,20 @@ h1 {
 .ex-row .info .n {
   font-size: 0.83rem;
   font-weight: 600;
+}
+.ex-name-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
+}
+.ex-name-btn:active {
+  text-decoration-color: var(--text-faint);
 }
 .ex-row .info .s {
   font-size: 0.72rem;
