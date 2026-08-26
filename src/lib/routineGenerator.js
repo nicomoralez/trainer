@@ -22,7 +22,14 @@ export function availableEquipmentTags(config) {
   return tags
 }
 
+const ROUTINE_EXERCISE_TYPES = new Set(['weight_reps', 'bodyweight_reps', 'assisted_bodyweight'])
+
+// Excluye estiramientos, movilidad y cardio por duración/distancia del pool
+// de rutina — no encajan con el modelo de series×reps y no deben aparecer
+// como sustituto de un ejercicio de fuerza (ver spec de rediseño de Entrenar).
 function isUsable(exercise, availableTags) {
+  if (!ROUTINE_EXERCISE_TYPES.has(exercise.exerciseType)) return false
+  if (exercise.isStretch) return false
   return exercise.equipment.every((tag) => availableTags.has(tag))
 }
 
