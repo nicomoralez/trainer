@@ -1,6 +1,6 @@
 import ExerciseDemo from './ExerciseDemo'
 import BodyDiagram from './BodyDiagram'
-import { MUSCLE_DETAIL_LABEL, MUSCLE_LABEL } from '../data/exercises'
+import { EQUIPMENT_LABEL, MUSCLE_DETAIL_LABEL, MUSCLE_LABEL } from '../data/exercises'
 
 export default function ExerciseDetailSheet({ exercise, gender, onClose }) {
   if (!exercise) return null
@@ -9,7 +9,8 @@ export default function ExerciseDetailSheet({ exercise, gender, onClose }) {
     MUSCLE_DETAIL_LABEL[exercise.muscleDetail] ?? MUSCLE_LABEL[exercise.muscle],
     ...(exercise.secondaryMuscles ?? []).map((d) => MUSCLE_DETAIL_LABEL[d]).filter(Boolean),
   ].filter(Boolean)
-  const equipmentLabel = exercise.equipment.length === 0 ? 'Peso corporal' : exercise.equipment.join(', ')
+  const equipmentLabel =
+    exercise.equipment.length === 0 ? 'Peso corporal' : exercise.equipment.map((tag) => EQUIPMENT_LABEL[tag] ?? tag).join(', ')
 
   return (
     <div className="modal-backdrop" onClick={onClose}>

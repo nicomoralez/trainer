@@ -885,6 +885,7 @@ h1 {
   stroke: var(--accent-2);
   stroke-width: 1.6;
   filter: drop-shadow(0 0 3px var(--accent-2));
+  animation: none;
 }
 .bd-region.bd-region-secondary {
   stroke: var(--accent-2);
@@ -1152,6 +1153,13 @@ h1 {
   flex-direction: column;
   max-height: 78vh;
 }
+.demo-credit-static {
+  position: static;
+  display: block;
+  text-align: right;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
 .picker-search {
   width: 100%;
   background: var(--bg-soft);
@@ -1221,7 +1229,6 @@ h1 {
   font-size: 0.7rem;
   color: var(--text-dim);
   font-family: var(--font-mono);
-  text-transform: capitalize;
 }
 .picker-row-preview {
   flex-shrink: 0;
@@ -1324,6 +1331,11 @@ h1 {
   width: 15px;
   height: 15px;
   stroke: var(--danger);
+}
+.ex-row button.icon-btn svg:not(.remove) {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-faint);
 }
 
 .add-ex {

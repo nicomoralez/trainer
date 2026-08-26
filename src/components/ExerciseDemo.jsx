@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getExerciseDemo, getExerciseFrames } from '../data/exerciseDemos'
 
 const FRAME_INTERVAL_MS = 700
@@ -20,7 +20,7 @@ function pingPongNext(i, length, dir) {
 }
 
 export default function ExerciseDemo({ exercise }) {
-  const frames = exercise?.demoSlug ? getExerciseFrames(exercise.demoSlug) : null
+  const frames = useMemo(() => (exercise?.demoSlug ? getExerciseFrames(exercise.demoSlug) : null), [exercise?.demoSlug])
   const [frameIndex, setFrameIndex] = useState(0)
   const [frameError, setFrameError] = useState(false)
   const dirRef = useRef(1)

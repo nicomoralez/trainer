@@ -3225,3 +3225,21 @@ export const MUSCLE_DETAIL_LABEL = {
   "cardio": "Cardio",
   "groin": "Ingle",
 }
+
+export const EQUIPMENT_LABEL = {
+  barbell: 'Barra',
+  dumbbells: 'Mancuernas',
+  kettlebell: 'Kettlebell',
+  bench: 'Banco',
+  pullup_bar: 'Barra de dominadas',
+  bands: 'Bandas elásticas',
+  cable: 'Polea',
+  wall: 'Pared',
+  towel: 'Toalla',
+  doorway: 'Marco de puerta',
+  chair: 'Silla',
+  stability_ball: 'Pelota de estabilidad',
+  plate: 'Disco suelto',
+  machine: 'Máquina',
+  cardio: 'Cardio',
+}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { getExerciseFrames } from '../data/exerciseDemos'
+import { EQUIPMENT_LABEL } from '../data/exercises'
 
 function normalize(s) {
   return s
@@ -49,7 +50,9 @@ export default function ExercisePicker({ pool, currentExerciseId, onSelect, onPr
                   <span className="picker-row-thumb">{frame && <img src={frame} alt="" loading="lazy" />}</span>
                   <span className="picker-row-info">
                     <span className="n">{e.name}</span>
-                    <span className="s">{e.equipment.length === 0 ? 'Peso corporal' : e.equipment.join(', ')}</span>
+                    <span className="s">
+                      {e.equipment.length === 0 ? 'Peso corporal' : e.equipment.map((tag) => EQUIPMENT_LABEL[tag] ?? tag).join(', ')}
+                    </span>
                   </span>
                 </button>
                 <button type="button" className="picker-row-preview" onClick={() => onPreview(e)} aria-label={`Ver detalle de ${e.name}`}>
@@ -60,6 +63,13 @@ export default function ExercisePicker({ pool, currentExerciseId, onSelect, onPr
           })}
           {results.length === 0 && <p className="empty-hint">No encontramos ejercicios con ese filtro.</p>}
         </div>
+        <span className="demo-credit demo-credit-static">
+          Ilustraciones:{' '}
+          <a href="https://github.com/bryllim/workout-guide" target="_blank" rel="noreferrer">
+            Workout Guide
+          </a>{' '}
+          (CC BY-SA 4.0)
+        </span>
       </div>
     </div>
   )

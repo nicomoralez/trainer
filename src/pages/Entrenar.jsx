@@ -399,7 +399,7 @@ export default function Entrenar() {
                       </div>
                     </span>
                     <button type="button" className="icon-btn" onClick={() => setPickerTarget({ day: selectedDay, exercise: ex })} aria-label="Cambiar ejercicio">
-                      <IconSwap style={{ width: 16, height: 16 }} />
+                      <IconSwap />
                     </button>
                     <button type="button" className="icon-btn" onClick={() => handleRemove(selectedDay, ex)} aria-label="Quitar ejercicio">
                       <IconRemove className="remove" />
