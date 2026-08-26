@@ -27,6 +27,10 @@ export const GYM_EQUIPMENT_DEFAULTS = {
   pullup_bar: true,
   bands: true,
   cable: true,
+  machine: true,
+  cardio: true,
+  stability_ball: true,
+  plate: true,
 }
 
 export async function fetchProfile(userId) {

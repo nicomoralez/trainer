@@ -11,6 +11,14 @@ export function availableEquipmentTags(config) {
   if (config.pullup_bar) tags.add('pullup_bar')
   if (config.bands) tags.add('bands')
   if (config.cable) tags.add('cable')
+  if (config.wall) tags.add('wall')
+  if (config.towel) tags.add('towel')
+  if (config.doorway) tags.add('doorway')
+  if (config.chair) tags.add('chair')
+  if (config.stability_ball) tags.add('stability_ball')
+  if (config.plate) tags.add('plate')
+  if (config.machine) tags.add('machine')
+  if (config.cardio) tags.add('cardio')
   return tags
 }
 
