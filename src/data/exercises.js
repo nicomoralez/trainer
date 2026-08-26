@@ -3242,4 +3242,5 @@ export const EQUIPMENT_LABEL = {
   plate: 'Disco suelto',
   machine: 'Máquina',
   cardio: 'Cardio',
+  box: 'Cajón',
 }
