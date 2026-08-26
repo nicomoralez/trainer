@@ -93,3 +93,37 @@ export function IconChevronLeft(props) {
     </svg>
   )
 }
+
+export function IconDayPush(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="12" r="2.5" />
+      <path d="M8.5 12h7" />
+    </svg>
+  )
+}
+
+export function IconDayPull(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
+      <path d="M4 8h16M4 8l3-3M4 8l3 3M20 8l-3-3M20 8l-3 3M12 8v13" />
+    </svg>
+  )
+}
+
+export function IconDayLegs(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
+      <path d="M9 3v7l-3 11h3l2-8 2 8h3l-3-11V3" />
+    </svg>
+  )
+}
+
+export function IconDayArms(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" {...props}>
+      <path d="M4 16c2-6 6-9 8-9s6 3 8 9M8 15l2-2M16 15l-2-2" />
+    </svg>
+  )
+}
