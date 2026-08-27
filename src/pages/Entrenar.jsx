@@ -191,7 +191,31 @@ export default function Entrenar() {
     setExerciseIndex(0)
     setElapsedSec(0)
     setPhase('active')
+    // Marca este momento en el historial del navegador para que el botón
+    // atrás (celular o navegador) vuelva a "elegir día" en vez de salir de
+    // /entrenar — ver el listener de popstate más abajo.
+    window.history.pushState({ trainerActive: true }, '')
   }
+
+  // Si hay una entrada de historial marcada (pusheada en startSession), la
+  // "cerramos" con history.back() en vez de tocar el estado directo — así
+  // el popstate de abajo es la única fuente de verdad y no queda una
+  // entrada fantasma que el usuario tenga que descartar con un back extra.
+  function exitSession() {
+    if (window.history.state?.trainerActive) {
+      window.history.back()
+    } else {
+      setPhase('select')
+    }
+  }
+
+  useEffect(() => {
+    function handlePopState() {
+      setPhase('select')
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   // ---- sesión activa: día y ejercicio actuales ----
   const day = phase === 'active' ? activeDay : null
@@ -481,7 +505,7 @@ export default function Entrenar() {
         <div className="screen-eyebrow">Entrenamiento</div>
         <h1>{day ? day.label : 'Sin ejercicios'}</h1>
         <div className="rest-day-card">Este día no tiene ejercicios compatibles con tu equipo.</div>
-        <button type="button" className="btn-secondary" style={{ marginTop: 14 }} onClick={() => setPhase('select')}>
+        <button type="button" className="btn-secondary" style={{ marginTop: 14 }} onClick={exitSession}>
           Volver a elegir
         </button>
       </div>
@@ -496,7 +520,7 @@ export default function Entrenar() {
         <div className="rest-day-card">
           Terminaste {day.label} en {formatTime(elapsedSec)}. Buen entrenamiento.
         </div>
-        <button type="button" className="btn-primary" style={{ marginTop: 14 }} onClick={() => setPhase('select')}>
+        <button type="button" className="btn-primary" style={{ marginTop: 14 }} onClick={exitSession}>
           Volver a elegir rutina
         </button>
       </div>
@@ -511,7 +535,7 @@ export default function Entrenar() {
   return (
     <div>
       {prToast && <div className="pr-toast">{prToast}</div>}
-      <button type="button" className="back-link" onClick={() => setPhase('select')}>
+      <button type="button" className="back-link" onClick={exitSession}>
         <IconChevronLeft /> Cambiar rutina
       </button>
       <div className="screen-eyebrow">Entrenamiento</div>
