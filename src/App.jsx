@@ -16,7 +16,7 @@ function TabBar() {
     { to: '/inicio', label: 'Inicio', Icon: IconInicio },
     { to: '/entrenar', label: 'Entrenar', Icon: IconPlay, cta: true },
     { to: '/progreso', label: 'Progreso', Icon: IconProgreso },
-    { to: '/configuracion', label: 'Config.', Icon: IconConfig },
+    { to: '/configuracion', label: 'Ajustes', Icon: IconConfig },
   ]
   return (
     <nav className="tabbar">

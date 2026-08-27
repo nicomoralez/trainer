@@ -1259,7 +1259,7 @@ h1 {
 .ex-row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 12px;
   padding: 9px 0;
   border-bottom: 1px solid #ffffff12;
 }
@@ -1273,8 +1273,8 @@ h1 {
   flex-shrink: 0;
 }
 .ex-row .arrows button {
-  width: 20px;
-  height: 15px;
+  width: 24px;
+  height: 19px;
   font-size: 0.62rem;
   line-height: 1;
   background: none;
@@ -1330,7 +1330,7 @@ h1 {
 .ex-row button.icon-btn {
   background: none;
   border: none;
-  padding: 4px;
+  padding: 8px;
   flex-shrink: 0;
 }
 .ex-row svg.remove {

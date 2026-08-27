@@ -188,7 +188,7 @@ export default function Progreso() {
                 <div className="d">{shortDate(r.performed_at.slice(0, 10))}</div>
               </span>
               <span className="pv">
-                {r.weight_kg} kg×{r.reps}
+                {r.weight_kg} kg{r.reps ? `×${r.reps}` : ''}
               </span>
               <IconUp />
             </div>
