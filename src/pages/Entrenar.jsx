@@ -98,6 +98,7 @@ export default function Entrenar() {
   const [bestWeight, setBestWeight] = useState(null)
   const [prToast, setPrToast] = useState('')
   const [elapsedSec, setElapsedSec] = useState(0)
+  const [focusedSetIndex, setFocusedSetIndex] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -200,6 +201,7 @@ export default function Entrenar() {
   useEffect(() => {
     if (!currentExercise) return
     setSets(Array.from({ length: currentExercise.sets }, () => ({ weight: '', reps: '', done: false })))
+    setFocusedSetIndex(0)
     setShowCues(false)
     fetchLastSession(user.id, currentExercise.exercise_id)
       .then((last) => {
@@ -228,8 +230,18 @@ export default function Entrenar() {
     return () => clearInterval(id)
   }, [phase])
 
-  function updateSet(i, field, value) {
-    setSets((cur) => cur.map((s, idx) => (idx === i ? { ...s, [field]: value } : s)))
+  // Steps peso/reps de a incrementos fijos (2.5kg / 1 rep) en vez de un
+  // input de texto libre — pensado para tocar con el pulgar durante el
+  // entrenamiento, sin necesidad de abrir el teclado.
+  function stepValue(i, field, delta, min = 0) {
+    setSets((cur) =>
+      cur.map((s, idx) => {
+        if (idx !== i) return s
+        const current = parseFloat(s[field]) || 0
+        const next = Math.max(min, +(current + delta).toFixed(2))
+        return { ...s, [field]: String(next) }
+      }),
+    )
   }
 
   async function completeSet(i) {
@@ -244,7 +256,10 @@ export default function Entrenar() {
         weightKg: weightNum,
         reps: s.reps ? parseInt(s.reps, 10) : null,
       })
-      setSets((cur) => cur.map((set, idx) => (idx === i ? { ...set, done: true } : set)))
+      const updatedSets = sets.map((set, idx) => (idx === i ? { ...set, done: true } : set))
+      setSets(updatedSets)
+      const nextUndone = updatedSets.findIndex((set) => !set.done)
+      setFocusedSetIndex(nextUndone === -1 ? i : nextUndone)
 
       if (weightNum && bestWeight != null && weightNum > bestWeight) {
         setBestWeight(weightNum)
@@ -316,18 +331,20 @@ export default function Entrenar() {
 
         {error && <div className="error-text">{error}</div>}
 
-        <div className="style-row">
-          {TRAINING_STYLE_LIST.map((style) => (
-            <button
-              key={style.id}
-              type="button"
-              className={`style-pill ${selectedStyleId === style.id ? 'active' : ''}`}
-              onClick={() => setSelectedStyleId(style.id)}
-            >
-              <span className="n">{style.label}</span>
-              <span className="d">{style.id === persistedStyleId ? 'Tu plan' : 'Probar hoy'}</span>
-            </button>
-          ))}
+        <div className="style-row-wrap">
+          <div className="style-row">
+            {TRAINING_STYLE_LIST.map((style) => (
+              <button
+                key={style.id}
+                type="button"
+                className={`style-pill ${selectedStyleId === style.id ? 'active' : ''}`}
+                onClick={() => setSelectedStyleId(style.id)}
+              >
+                <span className="n">{style.label}</span>
+                <span className="d">{style.id === persistedStyleId ? 'Tu plan' : 'Probar hoy'}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {!isPersistedStyle && (
@@ -546,48 +563,66 @@ export default function Entrenar() {
         )}
       </div>
 
-      <table className="set-table">
-        <thead>
-          <tr>
-            <th>Serie</th>
-            <th>Peso</th>
-            <th>Reps</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {sets.map((s, i) => (
-            <tr key={i} className={`enter ${s.done ? 'done' : ''}`} style={{ '--d': `${i * 40}ms` }}>
-              <td>{i + 1}</td>
-              <td>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={s.weight}
-                  onChange={(e) => updateSet(i, 'weight', e.target.value)}
-                  disabled={s.done}
-                  placeholder="kg"
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={s.reps}
-                  onChange={(e) => updateSet(i, 'reps', e.target.value)}
-                  disabled={s.done}
-                  placeholder="reps"
-                />
-              </td>
-              <td>
-                <button type="button" className={`check ${s.done ? 'on' : ''}`} onClick={() => completeSet(i)} aria-label={`Marcar serie ${i + 1} completa`}>
-                  {s.done && <IconCheck />}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {sets.length > 0 && (
+        <div className="set-focus">
+          <div className="set-dots">
+            {sets.map((s, i) => (
+              <button
+                type="button"
+                key={i}
+                className={`set-dot ${s.done ? 'done' : ''} ${i === focusedSetIndex ? 'current' : ''}`}
+                onClick={() => setFocusedSetIndex(i)}
+                aria-label={`Serie ${i + 1}${s.done ? ', completada' : ''}`}
+              >
+                {s.done ? <IconCheck /> : i + 1}
+              </button>
+            ))}
+          </div>
+
+          {sets[focusedSetIndex].done ? (
+            <>
+              <div className="set-done-recap">
+                Serie {focusedSetIndex + 1} registrada · {sets[focusedSetIndex].weight || 0} kg × {sets[focusedSetIndex].reps || 0} reps
+              </div>
+              <button type="button" className="btn-link" onClick={() => setFocusedSetIndex(sets.findIndex((s) => !s.done))} disabled={sets.every((s) => s.done)}>
+                Ir a la próxima serie
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="set-steppers">
+                <div className="stepper">
+                  <span className="stepper-label">Peso</span>
+                  <div className="stepper-row">
+                    <button type="button" onClick={() => stepValue(focusedSetIndex, 'weight', -2.5)} aria-label="Menos peso">
+                      −
+                    </button>
+                    <span className="stepper-value">{sets[focusedSetIndex].weight || 0} kg</span>
+                    <button type="button" onClick={() => stepValue(focusedSetIndex, 'weight', 2.5)} aria-label="Más peso">
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className="stepper">
+                  <span className="stepper-label">Reps</span>
+                  <div className="stepper-row">
+                    <button type="button" onClick={() => stepValue(focusedSetIndex, 'reps', -1)} aria-label="Menos reps">
+                      −
+                    </button>
+                    <span className="stepper-value">{sets[focusedSetIndex].reps || 0}</span>
+                    <button type="button" onClick={() => stepValue(focusedSetIndex, 'reps', 1)} aria-label="Más reps">
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button type="button" className="hero-cta" onClick={() => completeSet(focusedSetIndex)}>
+                Marcar serie {focusedSetIndex + 1}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="timer-block">
         <div className={`timer-ring ${resting && restRemaining <= 5 && restRemaining > 0 ? 'low' : ''}`}>

@@ -4,6 +4,7 @@ import { addBodyMetric, fetchBodyMetrics, fetchFirstAndLatestWeight } from '../l
 import { fetchPersonalRecords, fetchTrainingDayCount } from '../lib/workoutLogs'
 import { EXERCISES_BY_ID } from '../data/exercises'
 import { useCountUp } from '../lib/useCountUp'
+import MonthCalendar from '../components/MonthCalendar'
 import { IconUp } from '../components/Icons'
 
 function ProgresoSkeleton() {
@@ -176,6 +177,11 @@ export default function Progreso() {
         </button>
       </form>
 
+      <div className="field-label">Tu constancia</div>
+      <div className="enter" style={{ '--d': '200ms' }}>
+        <MonthCalendar userId={user.id} />
+      </div>
+
       <div className="field-label">Récords personales</div>
       {records.length === 0 ? (
         <p className="empty-hint">Todavía no registraste series con peso.</p>
@@ -184,7 +190,10 @@ export default function Progreso() {
           {records.map((r, i) => (
             <div className="pr-item enter" style={{ '--d': `${i * 60}ms` }} key={r.exercise_id}>
               <span className="pn">
-                <div className="n">{EXERCISES_BY_ID[r.exercise_id]?.name ?? r.exercise_id}</div>
+                <div className="n">
+                  <span className="pr-badge">Récord</span>
+                  {EXERCISES_BY_ID[r.exercise_id]?.name ?? r.exercise_id}
+                </div>
                 <div className="d">{shortDate(r.performed_at.slice(0, 10))}</div>
               </span>
               <span className="pv">

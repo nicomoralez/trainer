@@ -375,25 +375,9 @@ function EquipmentSection({ user }) {
       </div>
 
       <div className="field-label" style={{ marginTop: 6 }}>
-        Otros implementos
+        En casa
       </div>
       <div className="chip-grid">
-        <button type="button" className={`chip ${config.bench ? 'selected' : ''}`} onClick={() => toggle('bench')}>
-          <span className="dot" />
-          Banco
-        </button>
-        <button type="button" className={`chip ${config.pullup_bar ? 'selected' : ''}`} onClick={() => toggle('pullup_bar')}>
-          <span className="dot" />
-          Barra dominadas
-        </button>
-        <button type="button" className={`chip ${config.bands ? 'selected' : ''}`} onClick={() => toggle('bands')}>
-          <span className="dot" />
-          Bandas elásticas
-        </button>
-        <button type="button" className={`chip ${config.cable ? 'selected' : ''}`} onClick={() => toggle('cable')}>
-          <span className="dot" />
-          Polea / cable
-        </button>
         <button type="button" className={`chip ${config.wall ? 'selected' : ''}`} onClick={() => toggle('wall')}>
           <span className="dot" />
           Pared
@@ -418,6 +402,26 @@ function EquipmentSection({ user }) {
           <span className="dot" />
           Disco suelto
         </button>
+      </div>
+
+      <div className="field-label">Gimnasio</div>
+      <div className="chip-grid">
+        <button type="button" className={`chip ${config.bench ? 'selected' : ''}`} onClick={() => toggle('bench')}>
+          <span className="dot" />
+          Banco
+        </button>
+        <button type="button" className={`chip ${config.pullup_bar ? 'selected' : ''}`} onClick={() => toggle('pullup_bar')}>
+          <span className="dot" />
+          Barra dominadas
+        </button>
+        <button type="button" className={`chip ${config.bands ? 'selected' : ''}`} onClick={() => toggle('bands')}>
+          <span className="dot" />
+          Bandas elásticas
+        </button>
+        <button type="button" className={`chip ${config.cable ? 'selected' : ''}`} onClick={() => toggle('cable')}>
+          <span className="dot" />
+          Polea / cable
+        </button>
         <button type="button" className={`chip ${config.machine ? 'selected' : ''}`} onClick={() => toggle('machine')}>
           <span className="dot" />
           Máquina de gimnasio
@@ -426,6 +430,9 @@ function EquipmentSection({ user }) {
           <span className="dot" />
           Cardio (cinta, bici)
         </button>
+      </div>
+
+      <div className="chip-grid">
         <button type="button" className="chip selected locked chip-full" disabled>
           <span className="dot" />
           Peso corporal
