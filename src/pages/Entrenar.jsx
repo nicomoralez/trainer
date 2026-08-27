@@ -506,9 +506,7 @@ export default function Entrenar() {
   const completedCount = exerciseIndex
   const exerciseMeta = EXERCISES_BY_ID[currentExercise.exercise_id]
   const nextExerciseMeta = dayExercises[exerciseIndex + 1] ? EXERCISES_BY_ID[dayExercises[exerciseIndex + 1].exercise_id] : null
-  const circumference = 2 * Math.PI * 34
-  const fraction = restDuration > 0 ? restRemaining / restDuration : 0
-  const dashoffset = circumference * (1 - fraction)
+  const restFraction = restDuration > 0 ? restRemaining / restDuration : 0
 
   return (
     <div>
@@ -624,24 +622,19 @@ export default function Entrenar() {
         </div>
       )}
 
-      <div className="timer-block">
-        <div className={`timer-ring ${resting && restRemaining <= 5 && restRemaining > 0 ? 'low' : ''}`}>
-          <svg viewBox="0 0 80 80">
-            <circle className="bg" cx="40" cy="40" r="34" />
-            <circle className="fg" cx="40" cy="40" r="34" strokeDasharray={circumference} strokeDashoffset={dashoffset} />
-          </svg>
-          <div className="time">{formatTime(restRemaining)}</div>
+      <div className="rest-card">
+        <div className="rest-label">Descanso entre series</div>
+        <div className={`rest-time ${resting && restRemaining <= 5 && restRemaining > 0 ? 'low' : ''}`}>{formatTime(restRemaining)}</div>
+        <div className="progress-track" style={{ marginBottom: 14 }}>
+          <div className="progress-fill" style={{ width: `${restFraction * 100}%` }} />
         </div>
-        <div className="timer-meta">
-          <div className="label">Descanso entre series</div>
-          <div className="timer-adjust">
-            <button type="button" onClick={() => adjustRest(-15)}>
-              −15s
-            </button>
-            <button type="button" onClick={() => adjustRest(15)}>
-              +15s
-            </button>
-          </div>
+        <div className="timer-adjust">
+          <button type="button" onClick={() => adjustRest(-15)}>
+            −15s
+          </button>
+          <button type="button" onClick={() => adjustRest(15)}>
+            +15s
+          </button>
         </div>
       </div>
 
