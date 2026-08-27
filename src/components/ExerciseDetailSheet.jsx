@@ -9,8 +9,7 @@ export default function ExerciseDetailSheet({ exercise, gender, onClose }) {
     MUSCLE_DETAIL_LABEL[exercise.muscleDetail] ?? MUSCLE_LABEL[exercise.muscle],
     ...(exercise.secondaryMuscles ?? []).map((d) => MUSCLE_DETAIL_LABEL[d]).filter(Boolean),
   ].filter(Boolean)
-  const equipmentLabel =
-    exercise.equipment.length === 0 ? 'Peso corporal' : exercise.equipment.map((tag) => EQUIPMENT_LABEL[tag] ?? tag).join(', ')
+  const equipmentLabels = exercise.equipment.length === 0 ? ['Peso corporal'] : exercise.equipment.map((tag) => EQUIPMENT_LABEL[tag] ?? tag)
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -31,7 +30,11 @@ export default function ExerciseDetailSheet({ exercise, gender, onClose }) {
               {t}
             </span>
           ))}
-          <span className="detail-tag equip">{equipmentLabel}</span>
+          {equipmentLabels.map((label) => (
+            <span className="detail-tag equip" key={label}>
+              {label}
+            </span>
+          ))}
         </div>
         {exercise.cues && (
           <ul className="cue-list">

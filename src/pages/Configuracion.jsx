@@ -426,7 +426,7 @@ function EquipmentSection({ user }) {
           <span className="dot" />
           Cardio (cinta, bici)
         </button>
-        <button type="button" className="chip selected locked" disabled>
+        <button type="button" className="chip selected locked chip-full" disabled>
           <span className="dot" />
           Peso corporal
         </button>
