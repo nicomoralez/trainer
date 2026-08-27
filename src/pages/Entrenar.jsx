@@ -8,13 +8,15 @@ import { generateRoutine, usableExercisesForMuscles } from '../lib/routineGenera
 import { addRoutineExercise, removeRoutineExercise, swapExercisePositions, swapRoutineExercise } from '../lib/routines'
 import { EXERCISES_BY_ID, MUSCLE_LABEL } from '../data/exercises'
 import { TRAINING_STYLE_LIST } from '../data/trainingStyles'
-import { IconCheck, IconChevronLeft, IconClock, IconRemove } from '../components/Icons'
+import { IconChevronLeft, IconClock, IconDayArms, IconDayLegs, IconDayPull, IconDayPush, IconRemove, IconSwap, IconCheck } from '../components/Icons'
 import { feedbackPR, feedbackSetDone, feedbackWorkoutDone } from '../lib/feedback'
 import { getGenderPref, setGenderPref } from '../lib/genderPref'
 import BodyDiagram from '../components/BodyDiagram'
+import ExerciseDemo from '../components/ExerciseDemo'
+import ExercisePicker from '../components/ExercisePicker'
+import ExerciseDetailSheet from '../components/ExerciseDetailSheet'
 
 const DEFAULT_REST = 90
-const TONE_CLASSES = ['a', 'b', 'c']
 
 function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60)
@@ -45,6 +47,14 @@ function toDisplayDays(generated, styleId) {
   }))
 }
 
+function dayIcon(splitType) {
+  const muscles = splitType.split(',')
+  if (muscles.includes('legs')) return IconDayLegs
+  if (muscles.includes('back')) return IconDayPull
+  if (muscles.includes('chest') || muscles.includes('shoulders')) return IconDayPush
+  return IconDayArms
+}
+
 function EntrenarSkeleton() {
   return (
     <div>
@@ -73,6 +83,8 @@ export default function Entrenar() {
   const [selectedStyleId, setSelectedStyleId] = useState(null)
   const [gender, setGender] = useState(getGenderPref)
   const [error, setError] = useState('')
+  const [pickerTarget, setPickerTarget] = useState(null) // { day, exercise } | null
+  const [detailExercise, setDetailExercise] = useState(null)
 
   // ---- sesión activa ----
   const [activeDay, setActiveDay] = useState(null)
@@ -86,6 +98,7 @@ export default function Entrenar() {
   const [bestWeight, setBestWeight] = useState(null)
   const [prToast, setPrToast] = useState('')
   const [elapsedSec, setElapsedSec] = useState(0)
+  const [focusedSetIndex, setFocusedSetIndex] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -188,6 +201,7 @@ export default function Entrenar() {
   useEffect(() => {
     if (!currentExercise) return
     setSets(Array.from({ length: currentExercise.sets }, () => ({ weight: '', reps: '', done: false })))
+    setFocusedSetIndex(0)
     setShowCues(false)
     fetchLastSession(user.id, currentExercise.exercise_id)
       .then((last) => {
@@ -216,8 +230,18 @@ export default function Entrenar() {
     return () => clearInterval(id)
   }, [phase])
 
-  function updateSet(i, field, value) {
-    setSets((cur) => cur.map((s, idx) => (idx === i ? { ...s, [field]: value } : s)))
+  // Steps peso/reps de a incrementos fijos (2.5kg / 1 rep) en vez de un
+  // input de texto libre — pensado para tocar con el pulgar durante el
+  // entrenamiento, sin necesidad de abrir el teclado.
+  function stepValue(i, field, delta, min = 0) {
+    setSets((cur) =>
+      cur.map((s, idx) => {
+        if (idx !== i) return s
+        const current = parseFloat(s[field]) || 0
+        const next = Math.max(min, +(current + delta).toFixed(2))
+        return { ...s, [field]: String(next) }
+      }),
+    )
   }
 
   async function completeSet(i) {
@@ -232,7 +256,10 @@ export default function Entrenar() {
         weightKg: weightNum,
         reps: s.reps ? parseInt(s.reps, 10) : null,
       })
-      setSets((cur) => cur.map((set, idx) => (idx === i ? { ...set, done: true } : set)))
+      const updatedSets = sets.map((set, idx) => (idx === i ? { ...set, done: true } : set))
+      setSets(updatedSets)
+      const nextUndone = updatedSets.findIndex((set) => !set.done)
+      setFocusedSetIndex(nextUndone === -1 ? i : nextUndone)
 
       if (weightNum && bestWeight != null && weightNum > bestWeight) {
         setBestWeight(weightNum)
@@ -304,18 +331,20 @@ export default function Entrenar() {
 
         {error && <div className="error-text">{error}</div>}
 
-        <div className="style-row">
-          {TRAINING_STYLE_LIST.map((style) => (
-            <button
-              key={style.id}
-              type="button"
-              className={`style-pill ${selectedStyleId === style.id ? 'active' : ''}`}
-              onClick={() => setSelectedStyleId(style.id)}
-            >
-              <span className="n">{style.label}</span>
-              <span className="d">{style.id === persistedStyleId ? 'Tu plan' : 'Probar hoy'}</span>
-            </button>
-          ))}
+        <div className="style-row-wrap">
+          <div className="style-row">
+            {TRAINING_STYLE_LIST.map((style) => (
+              <button
+                key={style.id}
+                type="button"
+                className={`style-pill ${selectedStyleId === style.id ? 'active' : ''}`}
+                onClick={() => setSelectedStyleId(style.id)}
+              >
+                <span className="n">{style.label}</span>
+                <span className="d">{style.id === persistedStyleId ? 'Tu plan' : 'Probar hoy'}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {!isPersistedStyle && (
@@ -323,20 +352,23 @@ export default function Entrenar() {
         )}
 
         <div className="day-grid">
-          {daysForStyle.map((d, i) => (
-            <button
-              key={d.id}
-              type="button"
-              className={`day-tile enter ${selectedDay.id === d.id ? 'selected' : ''}`}
-              style={{ '--d': `${i * 50}ms` }}
-              onClick={() => setSelectedDayId(d.id)}
-            >
-              {isPersistedStyle && d.id === recommendedDayId && <span className="badge-rec">Recomendado</span>}
-              <span className={`tone-dot ${TONE_CLASSES[i % 3]}`} />
-              <div className="name">{d.label}</div>
-              <div className="count">{d.exercises.length} ejercicios</div>
-            </button>
-          ))}
+          {daysForStyle.map((d, i) => {
+            const DayIcon = dayIcon(d.split_type)
+            return (
+              <button
+                key={d.id}
+                type="button"
+                className={`day-tile enter ${selectedDay.id === d.id ? 'selected' : ''}`}
+                style={{ '--d': `${i * 50}ms` }}
+                onClick={() => setSelectedDayId(d.id)}
+              >
+                {isPersistedStyle && d.id === recommendedDayId && <span className="badge-rec">Recomendado</span>}
+                <DayIcon className="day-tile-icon" />
+                <div className="name">{d.label}</div>
+                <div className="count">{d.exercises.length} ejercicios</div>
+              </button>
+            )
+          })}
         </div>
 
         <div className="day-detail-card chart-card enter" style={{ '--d': '80ms' }}>
@@ -360,7 +392,6 @@ export default function Entrenar() {
           <div className="panel-title">{selectedDay.label}</div>
           {isPersistedStyle
             ? sortedExercises.map((ex, i) => {
-                const options = pool.filter((e) => e.id === ex.exercise_id || !used.has(e.id))
                 return (
                   <div className="ex-row" key={ex.id}>
                     <span className="arrows">
@@ -377,17 +408,16 @@ export default function Entrenar() {
                       </button>
                     </span>
                     <span className="info">
-                      <select value={ex.exercise_id} onChange={(e) => handleSwap(selectedDay, ex, e.target.value)}>
-                        {options.map((o) => (
-                          <option key={o.id} value={o.id}>
-                            {o.name}
-                          </option>
-                        ))}
-                      </select>
+                      <button type="button" className="ex-name-btn" onClick={() => setDetailExercise(EXERCISES_BY_ID[ex.exercise_id])}>
+                        {EXERCISES_BY_ID[ex.exercise_id]?.name ?? ex.exercise_id}
+                      </button>
                       <div className="s">
                         {ex.sets} × {ex.reps_min}-{ex.reps_max}
                       </div>
                     </span>
+                    <button type="button" className="icon-btn" onClick={() => setPickerTarget({ day: selectedDay, exercise: ex })} aria-label="Cambiar ejercicio">
+                      <IconSwap />
+                    </button>
                     <button type="button" className="icon-btn" onClick={() => handleRemove(selectedDay, ex)} aria-label="Quitar ejercicio">
                       <IconRemove className="remove" />
                     </button>
@@ -399,7 +429,9 @@ export default function Entrenar() {
                 return (
                   <div className="ex-row" key={ex.id}>
                     <span className="info">
-                      <div className="n">{meta?.name ?? ex.exercise_id}</div>
+                      <button type="button" className="ex-name-btn" onClick={() => setDetailExercise(meta)}>
+                        {meta?.name ?? ex.exercise_id}
+                      </button>
                       <div className="s">
                         {ex.sets} × {ex.reps_min}-{ex.reps_max}
                       </div>
@@ -424,6 +456,19 @@ export default function Entrenar() {
             Empezar entrenamiento →
           </button>
         </div>
+        {pickerTarget && (
+          <ExercisePicker
+            pool={pool.filter((e) => e.id === pickerTarget.exercise.exercise_id || !used.has(e.id))}
+            currentExerciseId={pickerTarget.exercise.exercise_id}
+            onSelect={(newId) => {
+              handleSwap(pickerTarget.day, pickerTarget.exercise, newId)
+              setPickerTarget(null)
+            }}
+            onPreview={(e) => setDetailExercise(e)}
+            onClose={() => setPickerTarget(null)}
+          />
+        )}
+        {detailExercise && <ExerciseDetailSheet exercise={detailExercise} gender={gender} onClose={() => setDetailExercise(null)} />}
       </div>
     )
   }
@@ -461,9 +506,7 @@ export default function Entrenar() {
   const completedCount = exerciseIndex
   const exerciseMeta = EXERCISES_BY_ID[currentExercise.exercise_id]
   const nextExerciseMeta = dayExercises[exerciseIndex + 1] ? EXERCISES_BY_ID[dayExercises[exerciseIndex + 1].exercise_id] : null
-  const circumference = 2 * Math.PI * 34
-  const fraction = restDuration > 0 ? restRemaining / restDuration : 0
-  const dashoffset = circumference * (1 - fraction)
+  const restFraction = restDuration > 0 ? restRemaining / restDuration : 0
 
   return (
     <div>
@@ -490,10 +533,13 @@ export default function Entrenar() {
       {error && <div className="error-text">{error}</div>}
 
       <div className="ex-current enter" key={currentExercise.id}>
-        <div className="n">{exerciseMeta?.name ?? currentExercise.exercise_id}</div>
+        <button type="button" className="ex-name-btn n" onClick={() => setDetailExercise(exerciseMeta)}>
+          {exerciseMeta?.name ?? currentExercise.exercise_id}
+        </button>
         <div className="target">
           Objetivo · {currentExercise.sets} series × {currentExercise.reps_min}–{currentExercise.reps_max} reps
         </div>
+        <ExerciseDemo exercise={exerciseMeta} />
         {exerciseMeta?.cues && (
           <>
             <button type="button" className="btn-link" style={{ marginTop: 10 }} onClick={() => setShowCues((v) => !v)}>
@@ -515,73 +561,87 @@ export default function Entrenar() {
         )}
       </div>
 
-      <table className="set-table">
-        <thead>
-          <tr>
-            <th>Serie</th>
-            <th>Peso</th>
-            <th>Reps</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {sets.map((s, i) => (
-            <tr key={i} className={`enter ${s.done ? 'done' : ''}`} style={{ '--d': `${i * 40}ms` }}>
-              <td>{i + 1}</td>
-              <td>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={s.weight}
-                  onChange={(e) => updateSet(i, 'weight', e.target.value)}
-                  disabled={s.done}
-                  placeholder="kg"
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={s.reps}
-                  onChange={(e) => updateSet(i, 'reps', e.target.value)}
-                  disabled={s.done}
-                  placeholder="reps"
-                />
-              </td>
-              <td>
-                <button type="button" className={`check ${s.done ? 'on' : ''}`} onClick={() => completeSet(i)} aria-label={`Marcar serie ${i + 1} completa`}>
-                  {s.done && <IconCheck />}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="timer-block">
-        <div className={`timer-ring ${resting && restRemaining <= 5 && restRemaining > 0 ? 'low' : ''}`}>
-          <svg viewBox="0 0 80 80">
-            <circle className="bg" cx="40" cy="40" r="34" />
-            <circle className="fg" cx="40" cy="40" r="34" strokeDasharray={circumference} strokeDashoffset={dashoffset} />
-          </svg>
-          <div className="time">{formatTime(restRemaining)}</div>
-        </div>
-        <div className="timer-meta">
-          <div className="label">Descanso entre series</div>
-          <div className="timer-adjust">
-            <button type="button" onClick={() => adjustRest(-15)}>
-              −15s
-            </button>
-            <button type="button" onClick={() => adjustRest(15)}>
-              +15s
-            </button>
+      {sets.length > 0 && (
+        <div className="set-focus">
+          <div className="set-dots">
+            {sets.map((s, i) => (
+              <button
+                type="button"
+                key={i}
+                className={`set-dot ${s.done ? 'done' : ''} ${i === focusedSetIndex ? 'current' : ''}`}
+                onClick={() => setFocusedSetIndex(i)}
+                aria-label={`Serie ${i + 1}${s.done ? ', completada' : ''}`}
+              >
+                {s.done ? <IconCheck /> : i + 1}
+              </button>
+            ))}
           </div>
+
+          {sets[focusedSetIndex].done ? (
+            <>
+              <div className="set-done-recap">
+                Serie {focusedSetIndex + 1} registrada · {sets[focusedSetIndex].weight || 0} kg × {sets[focusedSetIndex].reps || 0} reps
+              </div>
+              <button type="button" className="btn-link" onClick={() => setFocusedSetIndex(sets.findIndex((s) => !s.done))} disabled={sets.every((s) => s.done)}>
+                Ir a la próxima serie
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="set-steppers">
+                <div className="stepper">
+                  <span className="stepper-label">Peso</span>
+                  <div className="stepper-row">
+                    <button type="button" onClick={() => stepValue(focusedSetIndex, 'weight', -2.5)} aria-label="Menos peso">
+                      −
+                    </button>
+                    <span className="stepper-value">{sets[focusedSetIndex].weight || 0} kg</span>
+                    <button type="button" onClick={() => stepValue(focusedSetIndex, 'weight', 2.5)} aria-label="Más peso">
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className="stepper">
+                  <span className="stepper-label">Reps</span>
+                  <div className="stepper-row">
+                    <button type="button" onClick={() => stepValue(focusedSetIndex, 'reps', -1)} aria-label="Menos reps">
+                      −
+                    </button>
+                    <span className="stepper-value">{sets[focusedSetIndex].reps || 0}</span>
+                    <button type="button" onClick={() => stepValue(focusedSetIndex, 'reps', 1)} aria-label="Más reps">
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button type="button" className="hero-cta" onClick={() => completeSet(focusedSetIndex)}>
+                Marcar serie {focusedSetIndex + 1}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="rest-card">
+        <div className="rest-label">Descanso entre series</div>
+        <div className={`rest-time ${resting && restRemaining <= 5 && restRemaining > 0 ? 'low' : ''}`}>{formatTime(restRemaining)}</div>
+        <div className="progress-track" style={{ marginBottom: 14 }}>
+          <div className="progress-fill" style={{ width: `${restFraction * 100}%` }} />
+        </div>
+        <div className="timer-adjust">
+          <button type="button" onClick={() => adjustRest(-15)}>
+            −15s
+          </button>
+          <button type="button" onClick={() => adjustRest(15)}>
+            +15s
+          </button>
         </div>
       </div>
 
       <button className="btn-primary" onClick={nextExercise} disabled={exerciseIndex >= dayExercises.length - 1 && !sets.every((s) => s.done)}>
         {exerciseIndex === dayExercises.length - 1 ? 'Terminar entrenamiento' : 'Siguiente ejercicio →'}
       </button>
+      {detailExercise && <ExerciseDetailSheet exercise={detailExercise} gender={gender} onClose={() => setDetailExercise(null)} />}
     </div>
   )
 }

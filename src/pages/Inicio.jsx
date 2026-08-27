@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { useProfile } from '../lib/ProfileContext'
 import { getNextWorkoutDay } from '../lib/nextWorkoutDay'
-import { fetchLastSessionSummary, fetchTrainingDayCount, fetchTrainingStreak, fetchWeekTrainingDays } from '../lib/workoutLogs'
+import { fetchTrainingStreak, fetchWeekTrainingDays } from '../lib/workoutLogs'
 import { fetchFirstAndLatestWeight } from '../lib/bodyMetrics'
 import { fetchTodayIntake, setSupplementTaken } from '../lib/supplements'
 import { GOAL_LABEL } from '../lib/profile'
 import { useCountUp } from '../lib/useCountUp'
-import MonthCalendar from '../components/MonthCalendar'
 import { IconFlame } from '../components/Icons'
 
 const WEEKDAY_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
@@ -53,22 +52,12 @@ function InicioSkeleton() {
   )
 }
 
-function relativeDate(isoDate) {
-  const diffDays = Math.round((Date.now() - new Date(`${isoDate}T00:00:00`).getTime()) / 86400000)
-  if (diffDays === 0) return 'hoy'
-  if (diffDays === 1) return 'ayer'
-  if (diffDays < 7) return `hace ${diffDays} días`
-  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })
-}
-
 export default function Inicio() {
   const { user } = useAuth()
   const { profile } = useProfile()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [nextDay, setNextDay] = useState(null)
-  const [lastSession, setLastSession] = useState(null)
-  const [trainingDays, setTrainingDays] = useState(0)
   const [streak, setStreak] = useState(0)
   const [weekDays, setWeekDays] = useState(new Set())
   const [weightRange, setWeightRange] = useState({ first: null, latest: null })
@@ -78,18 +67,14 @@ export default function Inicio() {
     let active = true
     Promise.all([
       getNextWorkoutDay(user.id),
-      fetchLastSessionSummary(user.id),
-      fetchTrainingDayCount(user.id, 30),
       fetchTrainingStreak(user.id),
       fetchWeekTrainingDays(user.id),
       fetchFirstAndLatestWeight(user.id),
       fetchTodayIntake(user.id),
     ])
-      .then(([next, last, days, streakCount, week, weights, intake]) => {
+      .then(([next, streakCount, week, weights, intake]) => {
         if (!active) return
         setNextDay(next)
-        setLastSession(last)
-        setTrainingDays(days)
         setStreak(streakCount)
         setWeekDays(week)
         setWeightRange(weights)
@@ -118,11 +103,9 @@ export default function Inicio() {
   }
 
   const animatedStreak = useCountUp(streak)
-  const animatedTrainingDays = useCountUp(trainingDays)
 
   if (loading) return <InicioSkeleton />
 
-  const lastSessionDay = lastSession && nextDay?.routineData?.days.find((d) => d.id === lastSession.routineDayId)
   const { first, latest } = weightRange
   const hasGoal = profile?.target_weight_kg != null && first && latest
   let goalPct = null
@@ -204,24 +187,6 @@ export default function Inicio() {
           </div>
         </div>
       )}
-
-      <div className="stat-row">
-        <div className="stat-tile enter" style={{ '--d': '180ms' }}>
-          <div className="v">{Math.round(animatedTrainingDays)}</div>
-          <div className="l">Entrenamientos en los últimos 30 días</div>
-        </div>
-        <div className="stat-tile enter" style={{ '--d': '220ms' }}>
-          <div className="v">{lastSession ? relativeDate(lastSession.date) : '—'}</div>
-          <div className="l">
-            {lastSession ? `${lastSessionDay?.label ?? 'Último entrenamiento'} · ${lastSession.exerciseCount} ejercicios` : 'Todavía sin entrenamientos'}
-          </div>
-        </div>
-      </div>
-
-      <div className="field-label">Tu constancia</div>
-      <div className="enter" style={{ '--d': '260ms' }}>
-        <MonthCalendar userId={user.id} />
-      </div>
 
       <div className="field-label">Progreso hacia tu objetivo</div>
       {hasGoal ? (
